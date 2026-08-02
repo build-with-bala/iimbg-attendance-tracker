@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id          String       @id @default(cuid())
+  studentId   String       @unique            // e.g. DBM/1016/03
+  name        String
+  email       String       @unique
+  program     String                          // DBM / MBA / HHM
+  batch       String                          // e.g. 03 / 11
+  enrollments Enrollment[]
+  attendance  Attendance[]
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  code        String       @unique            // DT403
+  name        String
+  credits     Float
+  term        Int                             // 4 / 5 / 6
+  program     String
+  enrollments Enrollment[]
+  sessions    Session[]
+}
+
+model Enrollment {
+  id        String  @id @default(cuid())
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  @@unique([studentId, courseId])
+}
+
+model Session {
+  id         String       @id @default(cuid())
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId   String
+  date       DateTime                         // day of class
+  slot       String                           // "09:00-10:30"
+  professor  String?
+  attendance Attendance[]
+  @@unique([courseId, date, slot])
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String
+  status    String                            // PRESENT | ABSENT
+  markedBy  String
+  markedAt  DateTime @default(now())
+  @@unique([sessionId, studentId])
+}

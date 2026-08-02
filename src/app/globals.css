@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { background: #0e1116; color: #e6edf3; }
+.card { @apply bg-panel border border-line rounded-xl p-4; }
+.btn { @apply rounded-lg px-3 py-1.5 text-sm font-medium border border-line hover:border-accent transition; }
+.btn-accent { @apply bg-accent text-white border-accent hover:opacity-90; }
+.pill { @apply text-xs px-2 py-0.5 rounded-full border; }
+table { @apply w-full text-sm; }
+th { @apply text-left font-semibold text-neutral-400 py-2 px-2 border-b border-line; }
+td { @apply py-1.5 px-2 border-b border-line/60; }
+a { @apply text-accent; }
