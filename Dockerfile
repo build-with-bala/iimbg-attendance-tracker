@@ -3,7 +3,7 @@ FROM node:20-slim AS deps
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install
+RUN npm install --omit=optional
 
 # ---- build ----
 FROM node:20-slim AS build
