@@ -103,14 +103,30 @@ a { color: var(--accent-2); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ---------- attendance ring (signature) ---------- */
-.ring { position: relative; display: grid; place-items: center; }
-.ring > .ring-mid { position: absolute; text-align: center; }
+.attring { position: relative; display: grid; place-items: center; }
+.attring > .attring-mid { position: absolute; text-align: center; }
 
 /* ---------- misc ---------- */
 .stat-num { font-family: var(--font-display); font-weight: 600; line-height: 1; letter-spacing: -0.03em; }
 .bar-track { height: 7px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 999px; background: var(--accent); }
 ::selection { background: var(--accent); color: #0b0d12; }
+
+/* tabs */
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); margin-bottom: 1.4rem; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a.tab { white-space: nowrap; padding: .55rem .9rem; font-size: .88rem; color: var(--muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color .14s, border-color .14s; }
+.tabs a.tab:hover { color: var(--paper); text-decoration: none; }
+.tabs a.tab-active { color: var(--paper); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* 3D tilt + entrance motion */
+.tilt { transform-style: preserve-3d; will-change: transform; }
+.content > div > * { animation: rise .45s cubic-bezier(.2,.7,.3,1) both; }
+.content > div > *:nth-child(2) { animation-delay: .04s; }
+.content > div > *:nth-child(3) { animation-delay: .08s; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) center, calc(100% - 11px) center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 2rem; }
+@media (prefers-reduced-motion: reduce) { .content > div > * { animation: none; } }
 input, select { font-family: var(--font-body); }
 input[type="text"], input:not([type]), select {
   background: var(--ink); border: 1px solid var(--line); border-radius: 9px;

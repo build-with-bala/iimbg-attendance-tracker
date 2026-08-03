@@ -1,0 +1,178 @@
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { allClasses, coursePopularity, courseRoster, studentDirectory, compareStudents } from "@/lib/insights";
+import { attendanceSummary, courseCorrelations, attendanceDrivers, weeklyTrend } from "@/lib/analytics";
+import { saveRoster } from "@/lib/actions";
+import { TrendLine, BarPct } from "@/components/Charts";
+import { Meter } from "@/components/Ring";
+
+// ---- Timetable ----
+export async function TimetableView() {
+  const sessions = await allClasses();
+  const byDate = new Map<string, typeof sessions>();
+  for (const s of sessions) { const k = new Date(s.date).toISOString().slice(0, 10); (byDate.get(k) ?? byDate.set(k, []).get(k)!).push(s); }
+  return (
+    <div className="space-y-4">
+      <p style={{ color: "var(--muted)", fontSize: ".88rem", margin: 0 }}>{sessions.length} sessions across {new Set(sessions.map((s) => s.courseId)).size} courses.</p>
+      {[...byDate.entries()].map(([d, list]) => (
+        <div key={d} className="card">
+          <div className="eyebrow" style={{ marginBottom: ".5rem" }}>{new Date(d).toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "short" })}</div>
+          <div className="scroll-x"><table><thead><tr><th>Slot</th><th>Course</th><th>Professor</th></tr></thead><tbody>
+            {list.sort((a, b) => a.slot.localeCompare(b.slot)).map((s) => (
+              <tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{s.slot}</td><td><Link href={"/cohort?tab=subjects&course=" + s.courseId} className="code">{s.course.code}</Link> · {s.course.name}</td><td style={{ color: "var(--faint)" }}>{s.professor || "—"}</td></tr>
+            ))}
+          </tbody></table></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---- Subjects popularity + roster ----
+export async function SubjectsView({ course }: { course?: string }) {
+  const pop = await coursePopularity();
+  const roster = course ? await courseRoster(course) : null;
+  const maxOpted = Math.max(1, ...pop.map((p) => p.opted));
+  return (
+    <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: "1.1rem" }}>
+      <div className="card">
+        <div className="eyebrow" style={{ marginBottom: ".7rem" }}>Opted per subject</div>
+        <div className="scroll-x"><table><thead><tr><th>Code</th><th>Course</th><th>T</th><th>Opted</th></tr></thead><tbody>
+          {pop.map((c) => (
+            <tr key={c.id} style={course === c.id ? { background: "var(--accent-soft)" } : undefined}>
+              <td className="code">{c.code}</td><td><Link href={"/cohort?tab=subjects&course=" + c.id}>{c.name}</Link></td><td className="num">{c.term}</td>
+              <td style={{ minWidth: 150 }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div className="bar-track" style={{ width: `${(c.opted / maxOpted) * 100}%`, minWidth: 4 }}><div className="bar-fill" style={{ width: "100%" }} /></div><span className="num" style={{ fontSize: ".8rem" }}>{c.opted} <span className="code">({c.share}%)</span></span></div></td>
+            </tr>
+          ))}
+        </tbody></table></div>
+      </div>
+      <div className="card">
+        {roster?.course ? (<>
+          <div className="eyebrow">{roster.course.code}</div>
+          <div style={{ fontFamily: "var(--font-space)", fontWeight: 600, margin: ".2rem 0 .1rem" }}>{roster.course.name}</div>
+          <div className="code" style={{ marginBottom: ".7rem" }}>{roster.students.length} opted</div>
+          <div className="scroll-x" style={{ maxHeight: "62vh", overflowY: "auto" }}><table><tbody>{roster.students.map((s) => (<tr key={s.id}><td className="code">{s.studentId}</td><td>{s.name}</td></tr>))}</tbody></table></div>
+        </>) : <div style={{ color: "var(--faint)", fontSize: ".85rem" }}>Select a subject to list who opted it.</div>}
+      </div>
+    </div>
+  );
+}
+
+// ---- Students directory ----
+export async function StudentsView() {
+  const students = await studentDirectory();
+  return (
+    <div className="card">
+      <div className="eyebrow" style={{ marginBottom: ".7rem" }}>{students.length} students</div>
+      <div className="scroll-x" style={{ maxHeight: "76vh", overflowY: "auto" }}><table><thead><tr><th>Roll</th><th>Name</th><th>Subj</th><th></th></tr></thead><tbody>
+        {students.map((s) => (<tr key={s.id}><td className="code">{s.studentId}</td><td>{s.name}</td><td className="num">{s._count.enrollments}</td><td style={{ textAlign: "right" }}><Link href={"/cohort?tab=compare&a=" + s.id} className="code">compare →</Link></td></tr>))}
+      </tbody></table></div>
+    </div>
+  );
+}
+
+// ---- Compare ----
+export async function CompareView({ a, b }: { a?: string; b?: string }) {
+  const students = await prisma.student.findMany({ orderBy: { studentId: "asc" }, select: { id: true, name: true, studentId: true } });
+  const cmp = a && b && a !== b ? await compareStudents(a, b) : null;
+  return (
+    <div className="space-y-4">
+      <form className="card" method="GET" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: ".8rem" }}>
+        <input type="hidden" name="tab" value="compare" />
+        <label className="code" style={{ display: "block" }}>Student A
+          <select name="a" defaultValue={a} style={{ display: "block", marginTop: 4, minWidth: 220 }}><option value="">— pick —</option>{students.map((s) => <option key={s.id} value={s.id}>{s.studentId} — {s.name}</option>)}</select>
+        </label>
+        <label className="code" style={{ display: "block" }}>Student B
+          <select name="b" defaultValue={b} style={{ display: "block", marginTop: 4, minWidth: 220 }}><option value="">— pick —</option>{students.map((s) => <option key={s.id} value={s.id}>{s.studentId} — {s.name}</option>)}</select>
+        </label>
+        <button className="btn btn-accent">Compare</button>
+      </form>
+      {!cmp && <div className="card" style={{ color: "var(--faint)", fontSize: ".85rem" }}>Pick two students to see subject overlap and attendance differences.</div>}
+      {cmp && (<>
+        <div className="card tilt" style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+          <div><div style={{ fontFamily: "var(--font-space)", fontWeight: 600 }}>{cmp.a.name} <span style={{ color: "var(--faint)" }}>vs</span> {cmp.b.name}</div><div className="code">{cmp.a.studentId} · {cmp.b.studentId}</div></div>
+          <div style={{ textAlign: "right" }}><div className="stat-num num" style={{ fontSize: "2.2rem", color: "var(--accent)" }}>{cmp.jaccard}%</div><div className="code">similarity · {cmp.sharedCount}/{cmp.unionCount} shared</div></div>
+          <div style={{ textAlign: "right" }}><div className="code">Overall attendance</div><div className="num" style={{ fontWeight: 600 }}>{cmp.overallA ?? "—"}% <span style={{ color: "var(--faint)" }}>vs</span> {cmp.overallB ?? "—"}%</div></div>
+        </div>
+        <div className="card">
+          <div className="eyebrow" style={{ marginBottom: ".6rem" }}>Shared subjects · {cmp.shared.length}</div>
+          <div className="scroll-x"><table><thead><tr><th>T</th><th>Code</th><th>Course</th><th style={{ textAlign: "right" }}>A%</th><th style={{ textAlign: "right" }}>B%</th><th style={{ textAlign: "right" }}>Δ</th></tr></thead><tbody>
+            {cmp.shared.map((c) => (<tr key={c.code}><td className="num">{c.term}</td><td className="code">{c.code}</td><td>{c.name}</td><td className="num" style={{ textAlign: "right" }}>{c.pa ?? "—"}{c.pa != null ? "%" : ""}</td><td className="num" style={{ textAlign: "right" }}>{c.pb ?? "—"}{c.pb != null ? "%" : ""}</td><td className="num" style={{ textAlign: "right", color: c.diff == null ? "var(--faint)" : c.diff < 0 ? "var(--bad)" : "var(--good)" }}>{c.diff != null ? (c.diff > 0 ? "+" : "") + c.diff : "—"}</td></tr>))}
+            {cmp.shared.length === 0 && <tr><td colSpan={6} style={{ color: "var(--faint)" }}>No subjects in common.</td></tr>}
+          </tbody></table></div>
+        </div>
+        <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.1rem" }}>
+          <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>Only {cmp.a.name} · {cmp.onlyA.length}</div><table><tbody>{cmp.onlyA.map((c) => <tr key={c.code}><td className="code">T{c.term}</td><td className="code">{c.code}</td><td>{c.name}</td></tr>)}{cmp.onlyA.length === 0 && <tr><td style={{ color: "var(--faint)" }}>—</td></tr>}</tbody></table></div>
+          <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>Only {cmp.b.name} · {cmp.onlyB.length}</div><table><tbody>{cmp.onlyB.map((c) => <tr key={c.code}><td className="code">T{c.term}</td><td className="code">{c.code}</td><td>{c.name}</td></tr>)}{cmp.onlyB.length === 0 && <tr><td style={{ color: "var(--faint)" }}>—</td></tr>}</tbody></table></div>
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+// ---- Analytics (admin) ----
+export async function AnalyticsView() {
+  const [summary, corr, drivers, trend] = await Promise.all([attendanceSummary(), courseCorrelations(), attendanceDrivers(), weeklyTrend()]);
+  if (summary.courses.length === 0) return <div className="card" style={{ color: "var(--faint)" }}>No attendance recorded yet — analytics appear once marking begins.</div>;
+  const rColor = (r: number | null) => (r == null ? "var(--faint)" : r >= 0.5 ? "var(--good)" : r <= -0.5 ? "var(--bad)" : "var(--paper)");
+  return (
+    <div className="space-y-5">
+      <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.1rem" }}>
+        <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>Attendance % by course</div><BarPct data={summary.courses.map((c) => ({ label: c.code, pct: c.pct }))} /></div>
+        <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>Weekly trend</div><TrendLine data={trend} /></div>
+      </div>
+      <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.1rem" }}>
+        <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>Morning vs Afternoon/Evening</div><table><tbody>{drivers.slots.map((s) => (<tr key={s.label}><td>{s.label}</td><td className="code">{s.total} marks</td><td className="num" style={{ textAlign: "right", fontWeight: 600 }}>{s.pct}%</td></tr>))}</tbody></table></div>
+        <div className="card"><div className="eyebrow" style={{ marginBottom: ".5rem" }}>By professor</div><div className="scroll-x" style={{ maxHeight: 220, overflowY: "auto" }}><table><tbody>{drivers.professors.map((p) => (<tr key={p.label}><td>{p.label}</td><td className="num" style={{ textAlign: "right", fontWeight: 600 }}>{p.pct}%</td></tr>))}</tbody></table></div></div>
+      </div>
+      <div className="card">
+        <div className="eyebrow" style={{ marginBottom: ".3rem" }}>Course ↔ Course correlation</div>
+        <p className="code" style={{ marginBottom: ".7rem" }}>Pearson r across students taking both. +1 attend alike · −1 trade off (min 3 shared).</p>
+        <div className="scroll-x" style={{ maxHeight: 280, overflowY: "auto" }}><table><thead><tr><th>A</th><th>B</th><th style={{ textAlign: "right" }}>r</th><th style={{ textAlign: "right" }}>n</th></tr></thead><tbody>
+          {corr.matrix.filter((m) => m.r != null).slice(0, 40).map((m, i) => (<tr key={i}><td className="code">{m.a}</td><td className="code">{m.b}</td><td className="num" style={{ textAlign: "right", fontWeight: 600, color: rColor(m.r) }}>{m.r}</td><td className="num" style={{ textAlign: "right", color: "var(--faint)" }}>{m.n}</td></tr>))}
+        </tbody></table></div>
+      </div>
+      <div className="card">
+        <div className="eyebrow" style={{ marginBottom: ".5rem" }}>Ranking · lowest first</div>
+        <div className="scroll-x" style={{ maxHeight: 400, overflowY: "auto" }}><table><thead><tr><th>Roll</th><th>Name</th><th></th><th style={{ textAlign: "right" }}>%</th></tr></thead><tbody>
+          {summary.students.map((s) => (<tr key={s.id}><td className="code">{s.studentId}</td><td>{s.name}</td><td style={{ width: 70 }}><Meter value={s.pct} width={56} /></td><td className="num" style={{ textAlign: "right", fontWeight: 600, color: s.pct != null && s.pct < 75 ? "var(--bad)" : s.pct != null && s.pct >= 85 ? "var(--good)" : "var(--warn)" }}>{s.pct ?? "—"}%</td></tr>))}
+        </tbody></table></div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Roster mark (admin) ----
+export async function RosterView({ sessionId }: { sessionId?: string }) {
+  if (!sessionId) {
+    const sessions = await prisma.session.findMany({ include: { course: true, _count: { select: { attendance: true } } }, orderBy: [{ date: "asc" }, { slot: "asc" }] });
+    return (
+      <div className="card">
+        <div className="eyebrow" style={{ marginBottom: ".6rem" }}>Pick a session · {sessions.length}</div>
+        <div className="scroll-x" style={{ maxHeight: "72vh", overflowY: "auto" }}><table><thead><tr><th>Date</th><th>Slot</th><th>Course</th><th>Marked</th></tr></thead><tbody>
+          {sessions.map((s) => (<tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td><td className="code">{s.slot}</td><td><Link href={"/cohort?tab=roster&session=" + s.id}>{s.course.code} · {s.course.name}</Link></td><td>{s._count.attendance > 0 ? <span className="pill pill-good">{s._count.attendance}</span> : <span className="code">—</span>}</td></tr>))}
+        </tbody></table></div>
+      </div>
+    );
+  }
+  const ses = await prisma.session.findUnique({ where: { id: sessionId }, include: { course: true } });
+  if (!ses) return <div className="card">Session not found. <Link href="/cohort?tab=roster">Back</Link></div>;
+  const enrolled = await prisma.enrollment.findMany({ where: { courseId: ses.courseId }, include: { student: true }, orderBy: { student: { studentId: "asc" } } });
+  const existing = new Map((await prisma.attendance.findMany({ where: { sessionId } })).map((a) => [a.studentId, a.status]));
+  const firstTime = existing.size === 0;
+  return (
+    <form action={saveRoster} className="card">
+      <input type="hidden" name="sessionId" value={sessionId} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: ".6rem", flexWrap: "wrap" }}>
+        <div style={{ fontFamily: "var(--font-space)", fontWeight: 600 }}>{ses.course.code} · {ses.course.name}</div>
+        <Link href="/cohort?tab=roster" className="code">← all sessions</Link>
+      </div>
+      <div className="code" style={{ margin: ".2rem 0 1rem" }}>{new Date(ses.date).toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long" })} · {ses.slot} · {ses.professor || "—"} · {enrolled.length} enrolled</div>
+      <div className="scroll-x" style={{ maxHeight: "56vh", overflowY: "auto", marginBottom: "1rem" }}><table><thead><tr><th>Roll</th><th>Name</th><th style={{ textAlign: "right" }}>Present</th></tr></thead><tbody>
+        {enrolled.map((e) => (<tr key={e.studentId}><td className="code">{e.student.studentId}</td><td>{e.student.name}</td><td style={{ textAlign: "right" }}><input type="checkbox" name={"s_" + e.studentId} defaultChecked={firstTime ? true : existing.get(e.studentId) === "PRESENT"} style={{ width: 16, height: 16, accentColor: "var(--good)" }} /></td></tr>))}
+      </tbody></table></div>
+      <button className="btn btn-accent">Save attendance</button>
+      <span className="code" style={{ marginLeft: 10 }}>Unchecked = absent · defaults to all-present.</span>
+    </form>
+  );
+}

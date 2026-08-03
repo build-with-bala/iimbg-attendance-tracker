@@ -7,7 +7,7 @@ export function Ring({ value, size = 168, label }: { value: number | null; size?
   const dash = (Math.max(0, Math.min(100, v)) / 100) * c;
   const col = value == null ? "#5f6879" : v >= 85 ? "#4bc46e" : v >= 75 ? "#e3ac35" : "#f26144";
   return (
-    <div className="ring" style={{ width: size, height: size }}>
+    <div className="attring" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
         <circle
@@ -16,7 +16,7 @@ export function Ring({ value, size = 168, label }: { value: number | null; size?
           style={{ filter: `drop-shadow(0 0 6px ${col}55)` }}
         />
       </svg>
-      <div className="ring-mid">
+      <div className="attring-mid">
         <div className="stat-num" style={{ fontSize: size * 0.28, color: col }}>{value ?? "—"}<span style={{ fontSize: size * 0.13, color: "var(--muted)" }}>%</span></div>
         {label && <div className="eyebrow" style={{ marginTop: 4 }}>{label}</div>}
       </div>
