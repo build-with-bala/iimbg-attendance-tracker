@@ -17,14 +17,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="border-b border-line">
           <div className="max-w-6xl mx-auto flex items-center gap-4 px-4 py-3">
             <Link href="/" className="font-semibold text-neutral-100 no-underline">📋 ECAP Attendance</Link>
-            {role === "admin" && (
-              <nav className="flex gap-3 text-sm">
-                <Link href="/admin">Dashboard</Link>
-                <Link href="/admin/mark">Mark</Link>
-                <Link href="/admin/analytics">Analytics</Link>
+            {session?.user && (
+              <nav className="flex gap-3 text-sm flex-wrap">
+                <Link href="/classes">Classes</Link>
+                <Link href="/subjects">Subjects</Link>
+                <Link href="/students">Students</Link>
+                <Link href="/compare">Compare</Link>
+                {role === "student" && <><Link href="/me">My attendance</Link><Link href="/me/subjects">My subjects</Link><Link href="/me/mark">Mark me</Link></>}
+                {role === "admin" && <><Link href="/admin">Dashboard</Link><Link href="/admin/mark">Roster mark</Link><Link href="/admin/analytics">Analytics</Link></>}
               </nav>
             )}
-            {role === "student" && <nav className="text-sm"><Link href="/me">My attendance</Link></nav>}
             <div className="ml-auto flex items-center gap-3 text-sm">
               {session?.user ? (
                 <>
