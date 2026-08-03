@@ -1,28 +1,26 @@
+# Full node:20 (Debian) already includes openssl/libssl3 that Prisma needs —
+# avoids slow apt-get in every stage.
 # ---- deps ----
-FROM node:20-slim AS deps
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+FROM node:20 AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --omit=optional
 
 # ---- build ----
-FROM node:20-slim AS build
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+FROM node:20 AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate && npm run build
 
 # ---- runner ----
-FROM node:20-slim AS runner
-RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+FROM node:20 AS runner
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
-# prisma CLI + engines for runtime db push (invoke real entry, not the .bin symlink)
 COPY --from=build /app/node_modules/prisma ./node_modules/prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
