@@ -4,13 +4,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#0e1116",
-        panel: "#161b22",
-        line: "#232a34",
-        accent: "#4f8cff",
-        good: "#2ecc71",
-        warn: "#f1c40f",
-        bad: "#e74c3c",
+        ink: "#0b0d12",
+        panel: "#12151d",
+        line: "#242b39",
+        accent: "#7c8cff",
+        good: "#4bc46e",
+        warn: "#e3ac35",
+        bad: "#f26144",
+        paper: "#ece9df",
       },
     },
   },
