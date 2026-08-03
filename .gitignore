@@ -8,3 +8,6 @@ node_modules
 /scripts/*.sqlite3
 npm-debug.log*
 .DS_Store
+
+*.tsbuildinfo
+next-env.d.ts
