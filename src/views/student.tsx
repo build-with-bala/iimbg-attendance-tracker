@@ -24,8 +24,8 @@ export async function StandingView({ studentId }: { studentId: string }) {
 
   return (
     <div className="space-y-5">
-      <div className="card tilt" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "1.6rem", alignItems: "center" }} data-stack>
-        <Ring value={overall} label="attendance" />
+      <div className="card tilt" style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2rem", alignItems: "center", padding: "1.7rem 1.8rem" }} data-stack>
+        <Ring value={overall} size={196} label="attendance" />
         <div className="stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: ".8rem" }}>
           <Stat k="Attended" v={`${present}`} sub={`of ${rows.length} held`} />
           <Stat k="Subjects" v={`${enrolled}`} sub="this term" />
@@ -101,7 +101,7 @@ export async function MarkMeView({ studentId }: { studentId: string }) {
 }
 
 function Stat({ k, v, sub, tone }: { k: string; v: string; sub?: string; tone?: "good" | "bad" }) {
-  const col = tone === "good" ? "var(--good)" : tone === "bad" ? "var(--bad)" : "var(--paper)";
+  const col = tone === "good" ? "var(--good)" : tone === "bad" ? "var(--bad)" : "var(--text)";
   return (
     <div className="card-flat" style={{ padding: ".75rem .85rem" }}>
       <div className="eyebrow">{k}</div>

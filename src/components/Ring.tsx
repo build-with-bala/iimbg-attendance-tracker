@@ -1,15 +1,15 @@
 // Attendance ring — the signature element. Pure SVG, colored by health.
 export function Ring({ value, size = 168, label }: { value: number | null; size?: number; label?: string }) {
   const v = value ?? 0;
-  const stroke = 12;
-  const r = (size - stroke) / 2;
+  const stroke = 11;
+  const r = (size - stroke) / 2 - 12;
   const c = 2 * Math.PI * r;
   const dash = (Math.max(0, Math.min(100, v)) / 100) * c;
   const col = value == null ? "#5f6879" : v >= 85 ? "#4bc46e" : v >= 75 ? "#e3ac35" : "#f26144";
   return (
     <div className="attring" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track)" strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={`${dash} ${c}`}

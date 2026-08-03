@@ -39,7 +39,7 @@ export async function SubjectsView({ course }: { course?: string }) {
         <div className="eyebrow" style={{ marginBottom: ".7rem" }}>Opted per subject</div>
         <div className="scroll-x"><table><thead><tr><th>Code</th><th>Course</th><th>T</th><th>Opted</th></tr></thead><tbody>
           {pop.map((c) => (
-            <tr key={c.id} style={course === c.id ? { background: "var(--accent-soft)" } : undefined}>
+            <tr key={c.id} style={course === c.id ? { background: "color-mix(in srgb, var(--accent) 13%, transparent)" } : undefined}>
               <td className="code">{c.code}</td><td><Link href={"/cohort?tab=subjects&course=" + c.id}>{c.name}</Link></td><td className="num">{c.term}</td>
               <td style={{ minWidth: 150 }}><div style={{ display: "flex", alignItems: "center", gap: 8 }}><div className="bar-track" style={{ width: `${(c.opted / maxOpted) * 100}%`, minWidth: 4 }}><div className="bar-fill" style={{ width: "100%" }} /></div><span className="num" style={{ fontSize: ".8rem" }}>{c.opted} <span className="code">({c.share}%)</span></span></div></td>
             </tr>
@@ -114,7 +114,7 @@ export async function CompareView({ a, b }: { a?: string; b?: string }) {
 export async function AnalyticsView() {
   const [summary, corr, drivers, trend] = await Promise.all([attendanceSummary(), courseCorrelations(), attendanceDrivers(), weeklyTrend()]);
   if (summary.courses.length === 0) return <div className="card" style={{ color: "var(--faint)" }}>No attendance recorded yet — analytics appear once marking begins.</div>;
-  const rColor = (r: number | null) => (r == null ? "var(--faint)" : r >= 0.5 ? "var(--good)" : r <= -0.5 ? "var(--bad)" : "var(--paper)");
+  const rColor = (r: number | null) => (r == null ? "var(--faint)" : r >= 0.5 ? "var(--good)" : r <= -0.5 ? "var(--bad)" : "var(--text)");
   return (
     <div className="space-y-5">
       <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.1rem" }}>
