@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { normalizeStatus } from "@/lib/status";
 
 // Student marks their own attendance for one session (must be enrolled).
 export async function markSelf(formData: FormData) {
@@ -10,7 +11,7 @@ export async function markSelf(formData: FormData) {
   const student = await prisma.student.findUnique({ where: { email: session.user.email } });
   if (!student) throw new Error("no student");
   const sessionId = String(formData.get("sessionId"));
-  const status = String(formData.get("status")) === "PRESENT" ? "PRESENT" : "ABSENT";
+  const status = normalizeStatus(formData.get("status"));
   const ses = await prisma.session.findUnique({ where: { id: sessionId } });
   if (!ses) throw new Error("no session");
   const enrolled = await prisma.enrollment.findUnique({ where: { studentId_courseId: { studentId: student.id, courseId: ses.courseId } } });
@@ -33,7 +34,7 @@ export async function saveRoster(formData: FormData) {
   if (!ses) throw new Error("no session");
   const enrolled = await prisma.enrollment.findMany({ where: { courseId: ses.courseId } });
   await prisma.$transaction(enrolled.map((e) => {
-    const status = formData.get("s_" + e.studentId) === "on" ? "PRESENT" : "ABSENT";
+    const status = normalizeStatus(formData.get("s_" + e.studentId));
     return prisma.attendance.upsert({
       where: { sessionId_studentId: { sessionId, studentId: e.studentId } },
       create: { sessionId, studentId: e.studentId, status, markedBy: email },

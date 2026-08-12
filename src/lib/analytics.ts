@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { isPresent } from "./status";
 
 export type Row = { sessionId: string; studentId: string; status: string };
 
@@ -26,7 +27,7 @@ export async function attendanceSummary() {
   const byStudentCourse = new Map<string, { p: number; t: number }>();
 
   for (const a of attendance) {
-    const present = a.status === "PRESENT" ? 1 : 0;
+    const present = isPresent(a.status) ? 1 : 0;
     const s = byStudent.get(a.studentId) ?? { name: a.student.name, sid: a.student.studentId, p: 0, t: 0 };
     s.p += present; s.t += 1; byStudent.set(a.studentId, s);
 
@@ -68,7 +69,7 @@ export async function courseCorrelations() {
     if (!map.has(a.studentId)) map.set(a.studentId, new Map());
     const cm = map.get(a.studentId)!;
     const v = cm.get(a.session.courseId) ?? { p: 0, t: 0 };
-    v.p += a.status === "PRESENT" ? 1 : 0; v.t += 1; cm.set(a.session.courseId, v);
+    v.p += isPresent(a.status) ? 1 : 0; v.t += 1; cm.set(a.session.courseId, v);
   }
   const courseIds = [...courses.keys()];
   const matrix: { a: string; b: string; r: number | null; n: number }[] = [];
@@ -92,7 +93,7 @@ export async function attendanceDrivers() {
   const bySlot = new Map<string, { p: number; t: number }>();
   const byProf = new Map<string, { p: number; t: number }>();
   for (const a of attendance) {
-    const present = a.status === "PRESENT" ? 1 : 0;
+    const present = isPresent(a.status) ? 1 : 0;
     const sb = slotBucket(a.session.slot);
     const s = bySlot.get(sb) ?? { p: 0, t: 0 }; s.p += present; s.t += 1; bySlot.set(sb, s);
     const pf = a.session.professor || "—";
@@ -114,7 +115,7 @@ export async function weeklyTrend(studentId?: string) {
     const onejan = new Date(d.getFullYear(), 0, 1);
     const wk = Math.ceil((((d as any) - (onejan as any)) / 86400000 + onejan.getDay() + 1) / 7);
     const key = `${d.getFullYear()}-W${String(wk).padStart(2, "0")}`;
-    const v = weeks.get(key) ?? { p: 0, t: 0 }; v.p += a.status === "PRESENT" ? 1 : 0; v.t += 1; weeks.set(key, v);
+    const v = weeks.get(key) ?? { p: 0, t: 0 }; v.p += isPresent(a.status) ? 1 : 0; v.t += 1; weeks.set(key, v);
   }
   return [...weeks.entries()].sort().map(([week, v]) => ({ week, pct: pct(v.p, v.t), total: v.t }));
 }
@@ -130,7 +131,7 @@ export async function studentVsClass(studentId: string) {
   for (const a of attendance) {
     courseMeta.set(a.session.courseId, { code: a.session.course.code, name: a.session.course.name });
     if (a.studentId !== studentId) continue;
-    const v = mine.get(a.session.courseId) ?? { p: 0, t: 0 }; v.p += a.status === "PRESENT" ? 1 : 0; v.t += 1; mine.set(a.session.courseId, v);
+    const v = mine.get(a.session.courseId) ?? { p: 0, t: 0 }; v.p += isPresent(a.status) ? 1 : 0; v.t += 1; mine.set(a.session.courseId, v);
   }
   for (const [cid, v] of mine) {
     const m = pct(v.p, v.t); const ca = courseAvg.get(cid) ?? null;

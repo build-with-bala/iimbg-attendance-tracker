@@ -45,7 +45,7 @@ export default async function Login() {
           </div>
         </div>
 
-        <footer className="eyebrow l-foot">DBM · MBA · HHM — Terms IV / V / VI</footer>
+        <footer className="eyebrow l-foot">Digital Business Management · Business Administration · Hospital &amp; Health Management</footer>
       </div>
 
       <style>{`
@@ -55,10 +55,10 @@ export default async function Login() {
         .l-top { display: flex; align-items: center; justify-content: space-between; }
         .brand { display: flex; align-items: center; gap: .6rem; }
         .l-mark { color: var(--accent); font-size: 1.35rem; }
-        .l-name { font-family: var(--font-space); font-weight: 700; font-size: 1.1rem; display: flex; flex-direction: column; line-height: 1; }
+        .l-name { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; display: flex; flex-direction: column; line-height: 1; }
         .l-sub { font-family: var(--font-mono); font-weight: 400; font-size: .52rem; letter-spacing: .18em; color: var(--faint); margin-top: 3px; }
         .l-hero { margin: auto 0; max-width: 620px; padding: 2rem 0; }
-        .l-title { font-family: var(--font-space); font-weight: 700; font-size: clamp(2.3rem, 7vw, 3.7rem); line-height: 1.02; letter-spacing: -.03em; margin: 1.1rem 0 0; }
+        .l-title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.3rem, 7vw, 3.7rem); line-height: 1.02; letter-spacing: -.03em; margin: 1.1rem 0 0; }
         .l-lede { color: var(--muted); font-size: clamp(.95rem, 2.4vw, 1.1rem); line-height: 1.55; margin: 1.1rem 0 1.9rem; max-width: 31rem; }
         .l-card { max-width: 26rem; }
         .l-note { color: var(--faint); font-size: .8rem; text-align: center; margin-top: .8rem; }
@@ -75,7 +75,7 @@ function Feat({ ico, t, d }: { ico: string; t: string; d: string }) {
   return (
     <div className="card-flat" style={{ padding: ".95rem 1rem" }}>
       <div style={{ color: "var(--accent-2)", fontSize: "1.15rem" }}>{ico}</div>
-      <div style={{ fontFamily: "var(--font-space)", fontWeight: 600, fontSize: ".92rem", marginTop: ".35rem" }}>{t}</div>
+      <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: ".92rem", marginTop: ".35rem" }}>{t}</div>
       <div style={{ color: "var(--faint)", fontSize: ".76rem", marginTop: ".25rem", lineHeight: 1.4 }}>{d}</div>
     </div>
   );

@@ -1,13 +1,15 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { SectionSwitch, BottomNav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tilt } from "@/components/Tilt";
 
-const space = Space_Grotesk({ subsets: ["latin"], variable: "--font-space", weight: ["500", "600", "700"] });
+// Fraunces is variable: `axes` and `weight` are mutually exclusive — declaring
+// the opsz axis gives us the full weight range already.
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", axes: ["opsz"] });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500", "600"] });
 
@@ -24,7 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     : [{ href: "/student", label: "Student", ico: "◎" }, { href: "/cohort", label: "Cohort", ico: "▦" }];
 
   return (
-    <html lang="en" className={`${space.variable} ${inter.variable} ${mono.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         {session?.user ? (
@@ -43,13 +45,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         ) : (<main>{children}</main>)}
 
-        <style>{`
+        {/* injected raw: as JSX children React escapes the `>` in selectors server-side
+            only, which breaks hydration and downgrades the whole root to client rendering */}
+        <style dangerouslySetInnerHTML={{ __html: `
           .app { min-height: 100dvh; }
           .topbar { position: sticky; top: 0; z-index: 40; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
             gap: 1rem; padding: 0.9rem clamp(1rem, 4vw, 2.2rem); background: var(--bg); box-shadow: 0 6px 20px var(--nm-dk); }
           .brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: var(--text); justify-self: start; }
           .brand-mark { color: var(--accent); font-size: 1.2rem; }
-          .brand-txt { font-family: var(--font-space); font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; }
+          .brand-txt { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; }
           .topbar-center { justify-self: center; }
           .topbar-right { justify-self: end; display: flex; align-items: center; gap: .8rem; }
           .who { display: flex; align-items: center; gap: .5rem; }
@@ -62,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             .who-name { display: none; }
             .content { padding-bottom: 6rem; }
           }
-        `}</style>
+        ` }} />
       </body>
     </html>
   );

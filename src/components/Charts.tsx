@@ -31,7 +31,7 @@ export function TrendLine({ data }: { data: { week: string; pct: number | null }
   );
 }
 
-export function BarPct({ data, keyName = "label" }: { data: { pct: number | null }[]; keyName?: string }) {
+export function BarPct({ data, keyName = "label", labelWidth = 64 }: { data: { pct: number | null }[]; keyName?: string; labelWidth?: number }) {
   const c = useThemeColors();
   const color = (p: number | null) => (p == null ? c.axis : p >= 85 ? c.good : p >= 75 ? c.warn : c.bad);
   const tip = { background: c.panel, border: "none", borderRadius: 12, fontSize: 12, fontFamily: "var(--font-mono)", boxShadow: "4px 4px 12px var(--nm-dk)" } as any;
@@ -40,7 +40,7 @@ export function BarPct({ data, keyName = "label" }: { data: { pct: number | null
       <BarChart data={data} layout="vertical" margin={{ top: 2, right: 20, bottom: 2, left: 6 }}>
         <CartesianGrid stroke={c.grid} horizontal={false} />
         <XAxis type="number" domain={[0, 100]} tick={{ fill: c.axis, fontSize: 10, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={{ stroke: c.grid }} />
-        <YAxis type="category" dataKey={keyName} width={64} tick={{ fill: c.axis, fontSize: 11, fontFamily: "var(--font-mono)" }} tickLine={false} axisLine={false} />
+        <YAxis type="category" dataKey={keyName} width={labelWidth} tick={{ fill: c.axis, fontSize: 10, fontFamily: "var(--font-body)" }} tickLine={false} axisLine={false} interval={0} />
         <Tooltip contentStyle={tip} cursor={{ fill: c.grid }} />
         <Bar dataKey="pct" radius={[0, 6, 6, 0]} barSize={13}>{data.map((d, i) => <Cell key={i} fill={color(d.pct)} />)}</Bar>
       </BarChart>
