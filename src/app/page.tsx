@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getViewer } from "@/lib/viewer";
 
 export default async function Home() {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  redirect((session.user as any).role === "admin" ? "/cohort" : "/student");
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+  // Admins who are also students land on their own standing; the cohort tools
+  // are one click away in the section switch.
+  redirect(viewer.student ? "/student" : "/cohort");
 }

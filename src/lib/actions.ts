@@ -8,7 +8,7 @@ import { normalizeStatus } from "@/lib/status";
 export async function markSelf(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("unauth");
-  const student = await prisma.student.findUnique({ where: { email: session.user.email } });
+  const student = await prisma.student.findUnique({ where: { email: session.user.email.toLowerCase() } });
   if (!student) throw new Error("no student");
   const sessionId = String(formData.get("sessionId"));
   const status = normalizeStatus(formData.get("status"));

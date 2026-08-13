@@ -1,15 +1,15 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Tabs } from "@/components/Tabs";
+import { getViewer } from "@/lib/viewer";
 import { TimetableView, SubjectsView, StudentsView, CompareView, AnalyticsView, RosterView } from "@/views/cohort";
 import { cohortLabel } from "@/lib/insights";
 
 export const dynamic = "force-dynamic";
 
 export default async function CohortHub({ searchParams }: { searchParams: { tab?: string; course?: string; a?: string; b?: string; session?: string; when?: string } }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  const isAdmin = (session.user as any).role === "admin";
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+  const isAdmin = viewer.isAdmin;
 
   const tabs = [
     { key: "timetable", label: "Timetable" },

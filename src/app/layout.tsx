@@ -2,7 +2,8 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
+import { signOut } from "@/auth";
+import { getViewer, sectionsFor } from "@/lib/viewer";
 import { SectionSwitch, BottomNav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tilt } from "@/components/Tilt";
@@ -19,24 +20,25 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 const THEME_INIT = `(function(){try{var t=localStorage.getItem('theme');if(!t){t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();`;
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  const role = (session?.user as any)?.role;
-  const items = role === "admin"
-    ? [{ href: "/cohort", label: "Cohort", ico: "▦" }]
-    : [{ href: "/student", label: "Student", ico: "◎" }, { href: "/cohort", label: "Cohort", ico: "▦" }];
+  const viewer = await getViewer();
+  const items = viewer ? sectionsFor(viewer) : [];
 
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
-        {session?.user ? (
+        {viewer ? (
           <div className="app">
             <header className="topbar">
               <Link href="/" className="brand"><span className="brand-mark">▦</span><span className="brand-txt">Register</span></Link>
               <div className="topbar-center"><SectionSwitch items={items} /></div>
               <div className="topbar-right">
                 <ThemeToggle />
-                <div className="who"><span className="who-name">{session.user.name || session.user.email}</span><span className={"pill " + (role === "admin" ? "pill-warn" : "")}>{role}</span></div>
+                <div className="who">
+                  <span className="who-name">{viewer.name}</span>
+                  {viewer.isAdmin && <span className="pill pill-warn">admin</span>}
+                  {viewer.student && <span className="pill">student</span>}
+                </div>
                 <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}><button className="btn icon-btn" title="Sign out" aria-label="Sign out">⏻</button></form>
               </div>
             </header>

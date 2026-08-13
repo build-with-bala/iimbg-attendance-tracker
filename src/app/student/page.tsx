@@ -1,7 +1,6 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { Tabs } from "@/components/Tabs";
+import { getViewer } from "@/lib/viewer";
 import { programName } from "@/lib/programs";
 import { StandingView, TodayView, MySubjectsView, MarkMeView } from "@/views/student";
 
@@ -9,10 +8,10 @@ export const dynamic = "force-dynamic";
 const TABS = [{ key: "standing", label: "Standing" }, { key: "today", label: "Today" }, { key: "subjects", label: "Subjects" }, { key: "mark", label: "Mark" }];
 
 export default async function StudentHub({ searchParams }: { searchParams: { tab?: string } }) {
-  const session = await auth();
-  if (!session?.user) redirect("/login");
-  const student = await prisma.student.findUnique({ where: { email: session.user.email! } });
-  if (!student) redirect("/cohort"); // admins have no student record
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+  const student = viewer.student;
+  if (!student) redirect("/cohort"); // signed in but not on any roster
 
   const tab = searchParams.tab || "standing";
   return (
