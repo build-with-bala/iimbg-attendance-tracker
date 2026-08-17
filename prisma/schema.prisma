@@ -35,6 +35,7 @@ model Enrollment {
   studentId String
   course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId  String
+  section   String  @default("") // student's chosen section for multi-section courses; "" = not chosen
   @@unique([studentId, courseId])
 }
 

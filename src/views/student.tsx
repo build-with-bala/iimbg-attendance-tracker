@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { weeklyTrend } from "@/lib/analytics";
-import { mySubjects, studentSafety, studentDay } from "@/lib/insights";
+import { mySubjects, studentSafety, studentDay, sectionChoices } from "@/lib/insights";
+import { saveSections } from "@/lib/actions";
 import { POLICY, type Safety } from "@/lib/grades";
 import { formatDay, sessionKey } from "@/lib/dates";
 import { TrendLine } from "@/components/Charts";
@@ -12,6 +13,37 @@ import { MarkControl, StatusPill } from "@/components/MarkControl";
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div style={{ color: "var(--faint)", fontSize: ".85rem", padding: "1.4rem 0", textAlign: "center" }}>{children}</div>;
+}
+
+// ---- Section onboarding: pick your section for each multi-section elective ----
+export async function SectionOnboarding({ studentId, blocking = true }: { studentId: string; blocking?: boolean }) {
+  const choices = await sectionChoices(studentId);
+  if (choices.length === 0) return null;
+  return (
+    <form action={saveSections} className="card" style={{ maxWidth: "44rem", margin: "0 auto" }}>
+      <div className="eyebrow">{blocking ? "One-time setup" : "Your sections"}</div>
+      <h2 style={{ fontSize: "1.5rem", margin: ".5rem 0 .3rem" }}>Which section are you in?</h2>
+      <p style={{ color: "var(--muted)", fontSize: ".9rem", margin: "0 0 1.3rem", lineHeight: 1.5 }}>
+        {choices.length === 1 ? "One of your electives runs" : `${choices.length} of your electives run`} in multiple sections and the timetable can&apos;t tell which one is yours. Pick yours so we only show your classes — you can change this here anytime.
+      </p>
+      <div style={{ display: "grid", gap: "1rem" }}>
+        {choices.map((c) => (
+          <div key={c.courseId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: ".6rem", paddingBottom: ".9rem", borderBottom: "1px solid var(--divider)" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "1.02rem" }}>{c.name}</span>
+            <span className="mark" role="radiogroup" aria-label={`Section for ${c.name}`}>
+              {c.sections.map((s) => (
+                <label key={s} className="secpick">
+                  <input type="radio" name={"sec_" + c.courseId} value={s} defaultChecked={c.chosen === s} required />
+                  <span>Sec {s}</span>
+                </label>
+              ))}
+            </span>
+          </div>
+        ))}
+      </div>
+      <button className="btn btn-accent" style={{ marginTop: "1.2rem", width: "100%", padding: ".7rem" }}>Save my sections</button>
+    </form>
+  );
 }
 const toneColor = (t: string) => (t === "good" ? "var(--good)" : t === "warn" ? "var(--warn)" : t === "bad" ? "var(--bad)" : "var(--faint)");
 
@@ -158,8 +190,10 @@ export async function MySubjectsView({ studentId }: { studentId: string }) {
 }
 
 export async function MarkMeView({ studentId }: { studentId: string }) {
-  const courseIds = (await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true } })).map((e) => e.courseId);
-  const sessions = await prisma.session.findMany({ where: { courseId: { in: courseIds } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] });
+  const enr = await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true, section: true } });
+  const secOf = new Map(enr.map((e) => [e.courseId, e.section]));
+  const sessions = (await prisma.session.findMany({ where: { courseId: { in: enr.map((e) => e.courseId) } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }))
+    .filter((s) => s.section === "" || !secOf.get(s.courseId) || s.section === secOf.get(s.courseId));
   const mine = new Map((await prisma.attendance.findMany({ where: { studentId } })).map((a) => [a.sessionId, a.status]));
   const byDate = new Map<string, typeof sessions>();
   for (const s of sessions) { const k = sessionKey(s.date); (byDate.get(k) ?? byDate.set(k, []).get(k)!).push(s); }

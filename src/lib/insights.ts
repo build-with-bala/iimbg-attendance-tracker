@@ -24,6 +24,42 @@ export async function effectiveSessionTotals(courseIds: string[]) {
   return out;
 }
 
+// Per-student variant: once the student has picked a section, that section's
+// count replaces the largest-section guess.
+async function studentSessionTotals(enrollments: { courseId: string; section: string }[]) {
+  const out = new Map<string, number>();
+  if (enrollments.length === 0) return out;
+  const chosen = new Map(enrollments.map((e) => [e.courseId, e.section]));
+  const groups = await prisma.session.groupBy({ by: ["courseId", "section"], where: { courseId: { in: enrollments.map((e) => e.courseId) } }, _count: true });
+  const maxSec = new Map<string, number>();
+  const chosenSec = new Map<string, number>();
+  for (const g of groups) {
+    if (g.section === "") out.set(g.courseId, (out.get(g.courseId) ?? 0) + g._count);
+    else {
+      maxSec.set(g.courseId, Math.max(maxSec.get(g.courseId) ?? 0, g._count));
+      if (g.section === chosen.get(g.courseId)) chosenSec.set(g.courseId, g._count);
+    }
+  }
+  for (const [cid, m] of maxSec) out.set(cid, (out.get(cid) ?? 0) + (chosenSec.get(cid) ?? m));
+  return out;
+}
+
+// ---- Section onboarding: this student's multi-section electives + choice state ----
+export async function sectionChoices(studentId: string) {
+  const enrollments = await prisma.enrollment.findMany({
+    where: { studentId },
+    include: { course: true },
+    orderBy: { course: { code: "asc" } },
+  });
+  if (enrollments.length === 0) return [];
+  const groups = await prisma.session.groupBy({ by: ["courseId", "section"], where: { courseId: { in: enrollments.map((e) => e.courseId) }, NOT: { section: "" } }, _count: true });
+  const secByCourse = new Map<string, string[]>();
+  for (const g of groups) (secByCourse.get(g.courseId) ?? secByCourse.set(g.courseId, []).get(g.courseId)!).push(g.section);
+  return enrollments
+    .filter((e) => secByCourse.has(e.courseId))
+    .map((e) => ({ courseId: e.courseId, name: e.course.name, code: e.course.code, sections: secByCourse.get(e.courseId)!.sort(), chosen: e.section }));
+}
+
 // ---- Course popularity: how many students opted each subject ----
 export async function coursePopularity(program: string) {
   const courses = await prisma.course.findMany({
@@ -68,7 +104,7 @@ export async function mySubjects(studentId: string) {
   // peer share is within the student's own programme
   const me = await prisma.student.findUnique({ where: { id: studentId }, select: { program: true } });
   const total = await prisma.student.count({ where: { program: me?.program } });
-  const eff = await effectiveSessionTotals(enr.map((e) => e.courseId));
+  const eff = await studentSessionTotals(enr.map((e) => ({ courseId: e.courseId, section: e.section })));
   return enr.map((e) => ({
     id: e.course.id, code: e.course.code, name: e.course.name, credits: e.course.credits, term: e.course.term,
     opted: e.course._count.enrollments, sessions: eff.get(e.courseId) ?? 0,
@@ -132,7 +168,7 @@ export async function studentSafety(studentId: string) {
     where: { studentId },
     include: { course: true },
   });
-  const effTotals = await effectiveSessionTotals(enrollments.map((e) => e.courseId));
+  const effTotals = await studentSessionTotals(enrollments);
   const att = await prisma.attendance.findMany({
     where: { studentId },
     include: { session: { select: { courseId: true } } },
@@ -162,12 +198,15 @@ export async function studentSafety(studentId: string) {
 }
 
 // ---- One student's day: today's classes, or the next day that has any ----
+// Sectioned courses only surface the student's own section once chosen.
 export async function studentDay(studentId: string) {
-  const courseIds = (await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true } })).map((e) => e.courseId);
-  const [all, marks] = await Promise.all([
-    prisma.session.findMany({ where: { courseId: { in: courseIds } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }),
+  const enr = await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true, section: true } });
+  const secOf = new Map(enr.map((e) => [e.courseId, e.section]));
+  const [allRaw, marks] = await Promise.all([
+    prisma.session.findMany({ where: { courseId: { in: enr.map((e) => e.courseId) } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }),
     prisma.attendance.findMany({ where: { studentId }, select: { sessionId: true, status: true } }),
   ]);
+  const all = allRaw.filter((s) => s.section === "" || !secOf.get(s.courseId) || s.section === secOf.get(s.courseId));
   const today = todayKey();
   let day = today;
   let list = all.filter((s) => sessionKey(s.date) === today);

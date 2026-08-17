@@ -24,6 +24,31 @@ export async function markSelf(formData: FormData) {
   revalidatePath("/student");
 }
 
+// Student picks their section for each multi-section elective (onboarding).
+// Fields: sec_<courseId> = "A" | "B" | … — validated against that course's
+// actual session sections; only the signed-in student's own enrollments move.
+export async function saveSections(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("unauth");
+  const student = await prisma.student.findUnique({ where: { email: session.user.email.toLowerCase() } });
+  if (!student) throw new Error("no student");
+  const enrollments = await prisma.enrollment.findMany({ where: { studentId: student.id }, select: { id: true, courseId: true } });
+  const byCourse = new Map(enrollments.map((e) => [e.courseId, e.id]));
+  const updates: { id: string; section: string }[] = [];
+  for (const [key, value] of formData.entries()) {
+    if (!key.startsWith("sec_")) continue;
+    const courseId = key.slice(4);
+    const enrId = byCourse.get(courseId);
+    if (!enrId) continue;
+    const section = String(value).trim().toUpperCase();
+    const valid = await prisma.session.findFirst({ where: { courseId, section }, select: { id: true } });
+    if (!valid) continue;
+    updates.push({ id: enrId, section });
+  }
+  await prisma.$transaction(updates.map((u) => prisma.enrollment.update({ where: { id: u.id }, data: { section: u.section } })));
+  revalidatePath("/student");
+}
+
 // Admin marks a whole roster for a session.
 export async function saveRoster(formData: FormData) {
   const session = await auth();
