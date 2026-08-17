@@ -16,7 +16,7 @@ function useThemeColors() {
 
 export function TrendLine({ data }: { data: { week: string; pct: number | null }[] }) {
   const c = useThemeColors();
-  const tip = { background: c.panel, border: "none", borderRadius: 12, fontSize: 12, fontFamily: "var(--font-mono)", boxShadow: "4px 4px 12px var(--nm-dk)", color: c.axis } as any;
+  const tip = { background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(12px)", border: "1px solid var(--edge)", borderRadius: 12, fontSize: 12, fontFamily: "var(--font-mono)", boxShadow: "var(--shadow-sm)", color: c.axis } as any;
   return (
     <ResponsiveContainer width="100%" height={210}>
       <AreaChart data={data} margin={{ top: 8, right: 10, bottom: 4, left: -20 }}>
@@ -34,7 +34,7 @@ export function TrendLine({ data }: { data: { week: string; pct: number | null }
 export function BarPct({ data, keyName = "label", labelWidth = 64 }: { data: { pct: number | null }[]; keyName?: string; labelWidth?: number }) {
   const c = useThemeColors();
   const color = (p: number | null) => (p == null ? c.axis : p >= 85 ? c.good : p >= 75 ? c.warn : c.bad);
-  const tip = { background: c.panel, border: "none", borderRadius: 12, fontSize: 12, fontFamily: "var(--font-mono)", boxShadow: "4px 4px 12px var(--nm-dk)" } as any;
+  const tip = { background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(12px)", border: "1px solid var(--edge)", borderRadius: 12, fontSize: 12, fontFamily: "var(--font-mono)", boxShadow: "var(--shadow-sm)" } as any;
   return (
     <ResponsiveContainer width="100%" height={Math.max(160, data.length * 28)}>
       <BarChart data={data} layout="vertical" margin={{ top: 2, right: 20, bottom: 2, left: 6 }}>

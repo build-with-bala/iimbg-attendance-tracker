@@ -1,6 +1,6 @@
 import { signIn, auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { GridHero } from "@/components/GridHero";
+import { Backdrop } from "@/components/Backdrop";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default async function Login() {
@@ -11,7 +11,7 @@ export default async function Login() {
 
   return (
     <div className="landing">
-      <GridHero />
+      <Backdrop variant="hero" />
       <div className="landing-inner">
         <header className="l-top">
           <span className="brand"><span className="l-mark">▦</span><span className="l-name">Register<span className="l-sub">IIM BODH GAYA · ECAP</span></span></span>
@@ -50,7 +50,6 @@ export default async function Login() {
 
       <style>{`
         .landing { position: relative; min-height: 100dvh; overflow: hidden; }
-        .grid-hero { position: fixed; inset: 0; width: 100vw; height: 100dvh; z-index: 0; display: block; }
         .landing-inner { position: relative; z-index: 1; min-height: 100dvh; display: flex; flex-direction: column; padding: clamp(1.1rem, 4vw, 2.4rem); }
         .l-top { display: flex; align-items: center; justify-content: space-between; }
         .brand { display: flex; align-items: center; gap: .6rem; }

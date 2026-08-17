@@ -7,6 +7,7 @@ import { getViewer, sectionsFor } from "@/lib/viewer";
 import { SectionSwitch, BottomNav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tilt } from "@/components/Tilt";
+import { Backdrop } from "@/components/Backdrop";
 
 // Fraunces is variable: `axes` and `weight` are mutually exclusive — declaring
 // the opsz axis gives us the full weight range already.
@@ -29,6 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
         {viewer ? (
           <div className="app">
+            <Backdrop variant="ambient" />
             <header className="topbar">
               <Link href="/" className="brand"><span className="brand-mark">▦</span><span className="brand-txt">Register</span></Link>
               <div className="topbar-center"><SectionSwitch items={items} /></div>
@@ -52,7 +54,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <style dangerouslySetInnerHTML={{ __html: `
           .app { min-height: 100dvh; }
           .topbar { position: sticky; top: 0; z-index: 40; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-            gap: 1rem; padding: 0.9rem clamp(1rem, 4vw, 2.2rem); background: var(--bg); box-shadow: 0 6px 20px var(--nm-dk); }
+            gap: 1rem; padding: 0.9rem clamp(1rem, 4vw, 2.2rem);
+            background: color-mix(in srgb, var(--bg) 55%, transparent);
+            -webkit-backdrop-filter: blur(26px) saturate(1.5); backdrop-filter: blur(26px) saturate(1.5);
+            border-bottom: 1px solid var(--divider); box-shadow: var(--shadow-sm); }
           .brand { display: flex; align-items: center; gap: .55rem; text-decoration: none; color: var(--text); justify-self: start; }
           .brand-mark { color: var(--accent); font-size: 1.2rem; }
           .brand-txt { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; }

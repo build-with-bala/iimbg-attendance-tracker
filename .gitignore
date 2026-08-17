@@ -11,3 +11,8 @@ npm-debug.log*
 
 *.tsbuildinfo
 next-env.d.ts
+
+# local sqlite dev harness (see prisma/schema.local.prisma header)
+prisma/schema.local.prisma
+prisma/localseed.mjs
+_demoseed.mjs

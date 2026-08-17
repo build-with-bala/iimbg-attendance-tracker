@@ -20,12 +20,12 @@ export function GradeGauge({ pct }: { pct: number | null }) {
   let prev = 0;
   return (
     <div>
-      <div style={{ position: "relative", height: 16, borderRadius: 999, overflow: "hidden", display: "flex", boxShadow: "inset 2px 2px 5px var(--nm-dk), inset -2px -2px 5px var(--nm-lt)" }}>
-        {ZONES.map((z, i) => { const width = z.to - prev; prev = z.to; return <div key={i} style={{ width: `${width}%`, background: z.color, opacity: 0.85 }} />; })}
+      <div className="gauge-track">
+        {ZONES.map((z, i) => { const width = z.to - prev; prev = z.to; return <div key={i} style={{ width: `${width}%`, background: `linear-gradient(180deg, color-mix(in srgb, ${z.color} 55%, transparent), color-mix(in srgb, ${z.color} 30%, transparent))` }} />; })}
         {/* needle */}
         {pct != null && (
-          <div style={{ position: "absolute", top: -3, bottom: -3, left: `calc(${w}% - 1px)`, width: 2, background: "var(--text)", transition: "left 1.1s cubic-bezier(.2,.7,.3,1)", boxShadow: "0 0 4px var(--nm-dk)" }}>
-            <div style={{ position: "absolute", top: -6, left: -4, width: 10, height: 10, borderRadius: "50%", background: "var(--text)", boxShadow: "0 0 6px var(--nm-dk)" }} />
+          <div style={{ position: "absolute", top: -3, bottom: -3, left: `calc(${w}% - 1px)`, width: 2, background: "var(--text)", transition: "left 1.1s cubic-bezier(.2,.7,.3,1)", boxShadow: "0 0 4px rgba(0,0,0,.4)" }}>
+            <div style={{ position: "absolute", top: -6, left: -4, width: 10, height: 10, borderRadius: "50%", background: "var(--text)", boxShadow: "0 0 6px rgba(0,0,0,.4)" }} />
           </div>
         )}
       </div>

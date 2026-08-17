@@ -26,10 +26,10 @@ export async function TimetableView({ when = "today" }: { when?: string }) {
   const byDate = new Map<string, typeof sessions>();
   for (const s of shown) { const k = sessionKey(s.date); (byDate.get(k) ?? byDate.set(k, []).get(k)!).push(s); }
   const Toggle = () => (
-    <div style={{ display: "inline-flex", gap: 4, padding: 4, borderRadius: 12, background: "var(--bg)", boxShadow: "inset 3px 3px 7px var(--nm-dk), inset -3px -3px 7px var(--nm-lt)" }}>
+    <div className="seg" style={{ gap: 4, padding: 4 }}>
       {[["today", "Today"], ["all", "All classes"]].map(([k, l]) => {
         const on = when === k;
-        return <Link key={k} href={`/cohort?tab=timetable&when=${k}`} style={{ padding: ".4rem .85rem", borderRadius: 9, fontSize: ".82rem", fontWeight: on ? 600 : 400, color: on ? "var(--accent)" : "var(--muted)", textDecoration: "none", boxShadow: on ? "3px 3px 6px var(--nm-dk), -3px -3px 6px var(--nm-lt)" : "none" }}>{l}</Link>;
+        return <Link key={k} href={`/cohort?tab=timetable&when=${k}`} className={"seg-it" + (on ? " seg-on" : "")} style={{ padding: ".4rem .85rem", fontSize: ".82rem" }}>{l}</Link>;
       })}
     </div>
   );
