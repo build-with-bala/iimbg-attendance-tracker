@@ -8,12 +8,13 @@ function pct(p: number, t: number) {
 }
 
 // ---- Course popularity: how many students opted each subject ----
-export async function coursePopularity() {
+export async function coursePopularity(program: string) {
   const courses = await prisma.course.findMany({
+    where: { program },
     include: { _count: { select: { enrollments: true, sessions: true } } },
     orderBy: [{ term: "asc" }, { code: "asc" }],
   });
-  const total = await prisma.student.count();
+  const total = await prisma.student.count({ where: { program } });
   return courses
     .map((c) => ({ id: c.id, code: c.code, name: c.name, credits: c.credits, term: c.term, opted: c._count.enrollments, sessions: c._count.sessions, share: total ? Math.round((c._count.enrollments / total) * 1000) / 10 : 0 }))
     .sort((a, b) => b.opted - a.opted);
@@ -31,8 +32,9 @@ export async function courseRoster(courseId: string) {
 }
 
 // ---- Student directory ----
-export async function studentDirectory() {
+export async function studentDirectory(program: string) {
   return prisma.student.findMany({
+    where: { program },
     orderBy: { studentId: "asc" },
     include: { _count: { select: { enrollments: true } } },
   });
@@ -45,7 +47,9 @@ export async function mySubjects(studentId: string) {
     include: { course: { include: { _count: { select: { enrollments: true, sessions: true } } } } },
     orderBy: { course: { term: "asc" } },
   });
-  const total = await prisma.student.count();
+  // peer share is within the student's own programme
+  const me = await prisma.student.findUnique({ where: { id: studentId }, select: { program: true } });
+  const total = await prisma.student.count({ where: { program: me?.program } });
   return enr.map((e) => ({
     id: e.course.id, code: e.course.code, name: e.course.name, credits: e.course.credits, term: e.course.term,
     opted: e.course._count.enrollments, sessions: e.course._count.sessions,
@@ -160,20 +164,26 @@ export async function studentDay(studentId: string) {
   };
 }
 
-// ---- Cohort label: which programme(s)/term(s) are actually loaded ----
+// ---- Cohort label: the shown programme + its loaded term(s) ----
 const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
-export async function cohortLabel() {
-  const groups = await prisma.course.findMany({ select: { program: true, term: true }, distinct: ["program", "term"] });
-  if (groups.length === 0) return "Cohort";
-  const programs = [...new Set(groups.map((g) => programName(g.program)))];
+export async function cohortLabel(program: string) {
+  const groups = await prisma.course.findMany({ where: { program }, select: { term: true }, distinct: ["term"] });
+  if (groups.length === 0) return programName(program) || "Cohort";
   const terms = [...new Set(groups.map((g) => g.term))].sort((a, b) => a - b);
   const termLabel = terms.map((t) => ROMAN[t] ?? t).join(" / ");
-  return `${programs.join(" · ")} · Term ${termLabel}`;
+  return `${programName(program)} · Term ${termLabel}`;
+}
+
+// ---- Programmes that actually have data (for the cohort switcher) ----
+export async function loadedPrograms() {
+  const groups = await prisma.course.findMany({ select: { program: true }, distinct: ["program"], orderBy: { program: "asc" } });
+  return groups.map((g) => g.program);
 }
 
 // ---- All classes (sessions) for the browser ----
-export async function allClasses() {
+export async function allClasses(program: string) {
   const sessions = await prisma.session.findMany({
+    where: { course: { program } },
     include: { course: true, _count: { select: { attendance: true } } },
     orderBy: [{ date: "asc" }, { slot: "asc" }],
   });

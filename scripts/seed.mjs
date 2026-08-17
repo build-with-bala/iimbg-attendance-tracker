@@ -85,13 +85,32 @@ for (let i = 1; i < grid.length; i++) {
 console.log(`ECAP: ${courses.length} courses, ${students.length} students, ${sels.length} selections`);
 console.log(`Schedule: ${sessions.length} class sessions parsed (${PROGRAM_NAME} term ${TERM})`);
 
-// ---- write ----
+// ---- write (additive: replaces ONLY this programme's rows) ----
+// Deleting this programme's students + courses cascades away exactly its
+// enrollments, sessions and attendance; other programmes are never touched.
 async function main() {
-  await prisma.attendance.deleteMany();
-  await prisma.session.deleteMany();
-  await prisma.enrollment.deleteMany();
-  await prisma.course.deleteMany();
-  await prisma.student.deleteMany();
+  // guard: course codes are globally unique — refuse to steal one from another programme
+  const codeClash = await prisma.course.findMany({
+    where: { code: { in: courses.map((c) => c.code) }, NOT: { program: PROGRAM_NAME } },
+    select: { code: true, program: true },
+  });
+  if (codeClash.length) {
+    console.error(`ABORT: course code(s) already exist under another programme:`, codeClash);
+    process.exit(1);
+  }
+  // guard: same person (email) already seeded under another programme
+  const emailClash = await prisma.student.findMany({
+    where: { email: { in: students.map((s) => s.email.toLowerCase()) }, NOT: { program: PROGRAM_NAME } },
+    select: { email: true, program: true },
+  });
+  if (emailClash.length) {
+    console.error(`ABORT: student email(s) already exist under another programme:`, emailClash);
+    process.exit(1);
+  }
+
+  const delS = await prisma.student.deleteMany({ where: { program: PROGRAM_NAME } });
+  const delC = await prisma.course.deleteMany({ where: { program: PROGRAM_NAME } });
+  console.log(`Cleared ${PROGRAM_NAME}: ${delS.count} students, ${delC.count} courses (cascaded)`);
 
   const courseId = new Map();
   for (const c of courses) {
