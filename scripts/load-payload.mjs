@@ -41,8 +41,15 @@ async function main() {
   let ses = 0;
   for (const s of sessions) {
     if (!courseId.has(s.code)) continue;
-    await prisma.session.create({ data: { courseId: courseId.get(s.code), date: new Date(s.date), slot: s.slot, professor: s.professor } }).then(() => ses++).catch(() => {});
+    await prisma.session.create({ data: { courseId: courseId.get(s.code), date: new Date(s.date), slot: s.slot, section: s.section ?? "", professor: s.professor } }).then(() => ses++).catch(() => {});
   }
   console.log(`Seeded ${program}: ${courseId.size} courses, ${studentId.size} students, ${enr} enrollments, ${ses} sessions`);
+  // sanity: subjects-per-student histogram should mirror ECAP's PENDING picks
+  const rows = await prisma.enrollment.groupBy({ by: ["studentId"], where: { student: { program } }, _count: true });
+  const hist = new Map();
+  for (const r of rows) hist.set(r._count, (hist.get(r._count) ?? 0) + 1);
+  const zero = await prisma.student.count({ where: { program, enrollments: { none: {} } } });
+  if (zero) hist.set(0, zero);
+  console.log(`subjects/student: ${[...hist.entries()].sort((a, b) => a[0] - b[0]).map(([k, v]) => `${k}sub×${v}`).join("  ")}`);
 }
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());

@@ -7,16 +7,34 @@ function pct(p: number, t: number) {
   return t === 0 ? null : Math.round((p / t) * 1000) / 10;
 }
 
+// ---- Effective class count per course ----
+// Some courses run in parallel sections (Session.section = "A"/"B"/…) and ECAP
+// has no section membership, so a student attends common sessions plus ONE
+// section: effective total = common + the largest section's count.
+export async function effectiveSessionTotals(courseIds: string[]) {
+  const out = new Map<string, number>();
+  if (courseIds.length === 0) return out;
+  const groups = await prisma.session.groupBy({ by: ["courseId", "section"], where: { courseId: { in: courseIds } }, _count: true });
+  const maxSec = new Map<string, number>();
+  for (const g of groups) {
+    if (g.section === "") out.set(g.courseId, (out.get(g.courseId) ?? 0) + g._count);
+    else maxSec.set(g.courseId, Math.max(maxSec.get(g.courseId) ?? 0, g._count));
+  }
+  for (const [cid, m] of maxSec) out.set(cid, (out.get(cid) ?? 0) + m);
+  return out;
+}
+
 // ---- Course popularity: how many students opted each subject ----
 export async function coursePopularity(program: string) {
   const courses = await prisma.course.findMany({
     where: { program },
-    include: { _count: { select: { enrollments: true, sessions: true } } },
+    include: { _count: { select: { enrollments: true } } },
     orderBy: [{ term: "asc" }, { code: "asc" }],
   });
   const total = await prisma.student.count({ where: { program } });
+  const eff = await effectiveSessionTotals(courses.map((c) => c.id));
   return courses
-    .map((c) => ({ id: c.id, code: c.code, name: c.name, credits: c.credits, term: c.term, opted: c._count.enrollments, sessions: c._count.sessions, share: total ? Math.round((c._count.enrollments / total) * 1000) / 10 : 0 }))
+    .map((c) => ({ id: c.id, code: c.code, name: c.name, credits: c.credits, term: c.term, opted: c._count.enrollments, sessions: eff.get(c.id) ?? 0, share: total ? Math.round((c._count.enrollments / total) * 1000) / 10 : 0 }))
     .sort((a, b) => b.opted - a.opted);
 }
 
@@ -44,15 +62,16 @@ export async function studentDirectory(program: string) {
 export async function mySubjects(studentId: string) {
   const enr = await prisma.enrollment.findMany({
     where: { studentId },
-    include: { course: { include: { _count: { select: { enrollments: true, sessions: true } } } } },
+    include: { course: { include: { _count: { select: { enrollments: true } } } } },
     orderBy: { course: { term: "asc" } },
   });
   // peer share is within the student's own programme
   const me = await prisma.student.findUnique({ where: { id: studentId }, select: { program: true } });
   const total = await prisma.student.count({ where: { program: me?.program } });
+  const eff = await effectiveSessionTotals(enr.map((e) => e.courseId));
   return enr.map((e) => ({
     id: e.course.id, code: e.course.code, name: e.course.name, credits: e.course.credits, term: e.course.term,
-    opted: e.course._count.enrollments, sessions: e.course._count.sessions,
+    opted: e.course._count.enrollments, sessions: eff.get(e.courseId) ?? 0,
     share: total ? Math.round((e.course._count.enrollments / total) * 1000) / 10 : 0,
   }));
 }
@@ -111,8 +130,9 @@ import { safety } from "./grades";
 export async function studentSafety(studentId: string) {
   const enrollments = await prisma.enrollment.findMany({
     where: { studentId },
-    include: { course: { include: { _count: { select: { sessions: true } } } } },
+    include: { course: true },
   });
+  const effTotals = await effectiveSessionTotals(enrollments.map((e) => e.courseId));
   const att = await prisma.attendance.findMany({
     where: { studentId },
     include: { session: { select: { courseId: true } } },
@@ -126,7 +146,7 @@ export async function studentSafety(studentId: string) {
     if (isOD(a.status)) od.set(cid, (od.get(cid) ?? 0) + 1);
   }
   const courses = enrollments.map((e) => {
-    const total = e.course._count.sessions;
+    const total = effTotals.get(e.courseId) ?? 0;
     const s = safety(present.get(e.courseId) ?? 0, held.get(e.courseId) ?? 0, total, od.get(e.courseId) ?? 0);
     return { id: e.course.id, name: e.course.name, code: e.course.code, term: e.course.term, credits: e.course.credits, ...s };
   }).filter((c) => c.total > 0);

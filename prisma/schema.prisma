@@ -44,9 +44,10 @@ model Session {
   courseId   String
   date       DateTime                         // day of class
   slot       String                           // "09:00-10:30"
+  section    String       @default("")     // "A"/"B" when the schedule splits sections; "" = whole cohort
   professor  String?
   attendance Attendance[]
-  @@unique([courseId, date, slot])
+  @@unique([courseId, date, slot, section])
 }
 
 model Attendance {

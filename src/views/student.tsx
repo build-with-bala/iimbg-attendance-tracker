@@ -53,6 +53,7 @@ async function TodayBlock({ studentId, compact = false }: { studentId: string; c
                 <span className="code" style={{ color: "var(--accent-2)", whiteSpace: "nowrap" }}>{s.slot}</span>
                 <span>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: compact ? "1rem" : "1.1rem" }}>{s.course.name}</span>
+                  {s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".5rem", whiteSpace: "nowrap" }}>Sec {s.section}</span>}
                   {s.professor && <span className="code" style={{ marginLeft: ".55rem" }}>{s.professor}</span>}
                 </span>
               </div>
@@ -174,7 +175,7 @@ export async function MarkMeView({ studentId }: { studentId: string }) {
             {list.map((s) => (
               <tr key={s.id}>
                 <td className="code" style={{ whiteSpace: "nowrap" }}>{s.slot}</td>
-                <td style={{ fontWeight: 500 }}>{s.course.name}</td>
+                <td style={{ fontWeight: 500 }}>{s.course.name}{s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem", whiteSpace: "nowrap" }}>Sec {s.section}</span>}</td>
                 <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                   <MarkControl sessionId={s.id} status={mine.get(s.id)} size="sm" />
                 </td>

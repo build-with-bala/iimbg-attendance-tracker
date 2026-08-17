@@ -44,7 +44,7 @@ export async function TimetableView({ when = "today", program }: { when?: string
           <div className="eyebrow" style={{ marginBottom: ".6rem" }}>{formatDay(d)}</div>
           <div className="scroll-x"><table><thead><tr><th>Slot</th><th>Course</th><th>Professor</th></tr></thead><tbody>
             {list.sort((a, b) => a.slot.localeCompare(b.slot)).map((s) => (
-              <tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={"/cohort?tab=subjects&program=" + program + "&course=" + s.courseId}>{s.course.name}</Link></td><td style={{ color: "var(--faint)" }}>{s.professor || "—"}</td></tr>
+              <tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={"/cohort?tab=subjects&program=" + program + "&course=" + s.courseId}>{s.course.name}</Link>{s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem" }}>Sec {s.section}</span>}</td><td style={{ color: "var(--faint)" }}>{s.professor || "—"}</td></tr>
             ))}
           </tbody></table></div>
         </div>
@@ -179,7 +179,7 @@ export async function RosterView({ sessionId, program }: { sessionId?: string; p
       <div className="card">
         <div className="eyebrow" style={{ marginBottom: ".6rem" }}>Pick a session · {sessions.length}</div>
         <div className="scroll-x" style={{ maxHeight: "72vh", overflowY: "auto" }}><table><thead><tr><th>Date</th><th>Slot</th><th>Course</th><th>Marked</th></tr></thead><tbody>
-          {sessions.map((s) => (<tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td><td className="code">{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={"/cohort?tab=roster&program=" + program + "&session=" + s.id}>{s.course.name}</Link></td><td>{s._count.attendance > 0 ? <span className="pill pill-good">{s._count.attendance}</span> : <span className="code">—</span>}</td></tr>))}
+          {sessions.map((s) => (<tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td><td className="code">{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={"/cohort?tab=roster&program=" + program + "&session=" + s.id}>{s.course.name}</Link>{s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem" }}>Sec {s.section}</span>}</td><td>{s._count.attendance > 0 ? <span className="pill pill-good">{s._count.attendance}</span> : <span className="code">—</span>}</td></tr>))}
         </tbody></table></div>
       </div>
     );
@@ -196,7 +196,7 @@ export async function RosterView({ sessionId, program }: { sessionId?: string; p
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "1.15rem" }}>{ses.course.name}</div>
         <Link href="/cohort?tab=roster" className="code">← all sessions</Link>
       </div>
-      <div className="code" style={{ margin: ".2rem 0 1rem" }}>{formatDay(sessionKey(ses.date))} · {ses.slot} · {ses.professor || "—"} · {enrolled.length} enrolled</div>
+      <div className="code" style={{ margin: ".2rem 0 1rem" }}>{formatDay(sessionKey(ses.date))} · {ses.slot}{ses.section ? ` · Sec ${ses.section}` : ""} · {ses.professor || "—"} · {enrolled.length} enrolled</div>
       <div className="scroll-x" style={{ maxHeight: "56vh", overflowY: "auto", marginBottom: "1rem" }}><table><thead><tr><th>Roll</th><th>Name</th><th style={{ textAlign: "right" }}>Status</th></tr></thead><tbody>
         {enrolled.map((e) => {
           const current = firstTime ? "PRESENT" : normalizeStatus(existing.get(e.studentId) ?? "ABSENT");
