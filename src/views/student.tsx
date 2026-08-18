@@ -47,17 +47,20 @@ export async function SectionOnboarding({ studentId, blocking = true }: { studen
 }
 const toneColor = (t: string) => (t === "good" ? "var(--good)" : t === "warn" ? "var(--warn)" : t === "bad" ? "var(--bad)" : "var(--faint)");
 
-// adaptive headline for the skip budget
+// adaptive headline for the skip budget — bands come from misses vs the term
+// TOTAL (a drop only "happens" once a band is unreachable), never the running %
 function headline(o: Safety) {
   if (o.pct == null) return { big: null as number | null, kicker: "Safe to skip", sub: "Mark some classes to see your budget." };
-  if (o.pct >= POLICY.safe) {
+  if (o.projected != null && o.projected >= POLICY.safe) {
     return o.skipSafe > 0
-      ? { big: o.skipSafe, kicker: "Safe to skip", sub: `more of your ${o.remaining} remaining classes and still finish ≥80% — no grade drop.` }
-      : { big: 0, kicker: "At the limit", sub: `you're right on 80% — attend the rest to keep your grade safe.` };
+      ? { big: o.skipSafe, kicker: "Safe to skip", sub: `more of your ${o.remaining} remaining classes and still finish ≥80% — you've missed ${o.missed} of ${o.total} total.` }
+      : { big: 0, kicker: "At the limit", sub: `${o.missed} of ${o.total} classes missed is the most 80% allows — attend everything that's left.` };
   }
-  const need = Math.max(0, Math.ceil((POLICY.safe / 100) * o.total) - o.present);
-  if (need <= o.remaining) return { big: need, kicker: "Attend to recover", sub: `of your ${o.remaining} remaining to climb back to 80% and avoid a grade drop.` };
-  return { big: 0, kicker: "Below 80%", sub: `can't reach 80% this term — currently ${o.status.label.toLowerCase()}. Attend everything to limit the damage.` };
+  if (o.projected != null && o.projected >= POLICY.drop1)
+    return { big: o.skip60, kicker: "−1 grade locked", sub: `${o.missed} of ${o.total} total classes missed puts 80% out of reach. ${o.skip60 > 0 ? `${o.skip60} more skip${o.skip60 === 1 ? "" : "s"} before it becomes −2.` : "Attend everything left to avoid −2."}` };
+  if (o.projected != null && o.projected >= POLICY.drop2)
+    return { big: o.skip50, kicker: "−2 grades locked", sub: `${o.missed} of ${o.total} total classes missed — 60% is out of reach. ${o.skip50 > 0 ? `${o.skip50} more skip${o.skip50 === 1 ? "" : "s"} before an F.` : "Attend everything left to avoid an F."}` };
+  return { big: 0, kicker: "Failing on attendance", sub: `${o.missed} of ${o.total} total classes missed — even attending everything left ends below 50%.` };
 }
 
 // ---- Today's classes, shared by the dashboard and the Today tab ----
@@ -116,7 +119,8 @@ export async function StandingView({ studentId }: { studentId: string }) {
             <span style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: "var(--muted)" }}>{h.big === 1 ? "class" : "classes"}</span>
           </div>
           <p style={{ color: "var(--muted)", fontSize: ".92rem", margin: "0 0 1.2rem", maxWidth: "34rem", lineHeight: 1.5 }}>{h.sub}</p>
-          <GradeGauge pct={overall.pct} />
+          <GradeGauge pct={overall.projected} />
+          <div className="code" style={{ marginTop: 4 }}>▲ best possible finish — attend every remaining class</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "1.4rem", marginTop: "1.1rem", fontFamily: "var(--font-mono)", fontSize: ".8rem", color: "var(--muted)" }}>
             <span><span style={{ color: "var(--text)", fontWeight: 600 }}>{overall.present}/{overall.held}</span> attended</span>
             {overall.od > 0 && <span><span style={{ color: "var(--accent-2)", fontWeight: 600 }}>{overall.od}</span> OD counted</span>}
@@ -137,7 +141,7 @@ export async function StandingView({ studentId }: { studentId: string }) {
               <td style={{ fontWeight: 500 }}>{c.name}{c.od > 0 && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem", whiteSpace: "nowrap" }}>+{c.od} OD</span>}</td>
               <td className="num" style={{ textAlign: "right" }}>{c.pct ?? "—"}%</td>
               <td style={{ width: 74 }}><Meter value={c.pct} width={62} /></td>
-              <td className="num" style={{ textAlign: "right", fontWeight: 600, color: c.skipSafe === 0 ? "var(--bad)" : "var(--text)" }}>{c.pct != null && c.pct < 80 ? "0" : c.skipSafe}</td>
+              <td className="num" style={{ textAlign: "right", fontWeight: 600, color: c.skipSafe === 0 ? "var(--bad)" : "var(--text)" }}>{c.skipSafe}</td>
               <td style={{ textAlign: "right" }}><span style={{ color: toneColor(c.status.tone), fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>{c.status.label}</span></td>
             </tr>
           ))}
