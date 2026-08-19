@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Tabs } from "@/components/Tabs";
 import { getViewer } from "@/lib/viewer";
-import { TimetableView, SubjectsView, StudentsView, CompareView, AnalyticsView, RosterView } from "@/views/cohort";
+import { TimetableView, SubjectsView, StudentsView, CompareView } from "@/views/cohort";
 import { cohortLabel, loadedPrograms } from "@/lib/insights";
 
 export const dynamic = "force-dynamic";
@@ -23,22 +23,28 @@ export default async function CohortHub({ searchParams }: { searchParams: { tab?
     own ??
     (programs.includes("DBM") ? "DBM" : programs[0] ?? "DBM");
 
+  // Analytics and roster marking live in the /admin console now, so this hub is
+  // the same batch view for everyone.
   const tabs = [
     { key: "timetable", label: "Timetable" },
     { key: "subjects", label: "Subjects" },
     { key: "students", label: "Students" },
     { key: "compare", label: "Compare" },
-    ...(isAdmin ? [{ key: "analytics", label: "Analytics" }, { key: "roster", label: "Roster mark" }] : []),
   ];
-  const tab = searchParams.tab || (isAdmin ? "analytics" : "timetable");
+  const tab = tabs.some((t) => t.key === searchParams.tab) ? searchParams.tab! : "timetable";
 
   return (
     <div className="space-y-4">
       <div style={{ marginBottom: ".4rem", display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: ".9rem" }}>
         <div>
           <div className="eyebrow">{await cohortLabel(program)}</div>
-          <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.7rem)", marginTop: ".5rem" }}>{isAdmin ? "The register" : "Explore the batch"}</h1>
+          <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.7rem)", marginTop: ".5rem" }}>Explore the batch</h1>
         </div>
+        {isAdmin && (
+          <Link href="/admin" className="btn" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: ".4rem" }}>
+            ▦ Admin console
+          </Link>
+        )}
         {canSwitch && programs.length > 1 && (
           <div className="seg" style={{ gap: 4, padding: 4 }}>
             {programs.map((p) => (
@@ -54,8 +60,6 @@ export default async function CohortHub({ searchParams }: { searchParams: { tab?
       {tab === "subjects" && <SubjectsView course={searchParams.course} program={program} />}
       {tab === "students" && <StudentsView program={program} />}
       {tab === "compare" && <CompareView a={searchParams.a} b={searchParams.b} program={program} />}
-      {tab === "analytics" && isAdmin && <AnalyticsView program={program} />}
-      {tab === "roster" && isAdmin && <RosterView sessionId={searchParams.session} program={program} />}
     </div>
   );
 }

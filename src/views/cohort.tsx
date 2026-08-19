@@ -172,20 +172,24 @@ export async function AnalyticsView({ program }: { program: string }) {
 }
 
 // ---- Roster mark (admin) ----
-export async function RosterView({ sessionId, program }: { sessionId?: string; program: string }) {
+// `base` is where this view is mounted — it lives in the /admin console now, but
+// keeps the prop so the links never hard-code a route the host doesn't own.
+export async function RosterView({ sessionId, program, base = "/admin/mark" }: { sessionId?: string; program: string; base?: string }) {
+  const listHref = `${base}?program=${program}`;
+  const sessionHref = (id: string) => `${listHref}&session=${id}`;
   if (!sessionId) {
     const sessions = await prisma.session.findMany({ where: { course: { program } }, include: { course: true, _count: { select: { attendance: true } } }, orderBy: [{ date: "asc" }, { slot: "asc" }] });
     return (
       <div className="card">
         <div className="eyebrow" style={{ marginBottom: ".6rem" }}>Pick a session · {sessions.length}</div>
         <div className="scroll-x" style={{ maxHeight: "72vh", overflowY: "auto" }}><table><thead><tr><th>Date</th><th>Slot</th><th>Course</th><th>Marked</th></tr></thead><tbody>
-          {sessions.map((s) => (<tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td><td className="code">{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={"/cohort?tab=roster&program=" + program + "&session=" + s.id}>{s.course.name}</Link>{s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem" }}>Sec {s.section}</span>}</td><td>{s._count.attendance > 0 ? <span className="pill pill-good">{s._count.attendance}</span> : <span className="code">—</span>}</td></tr>))}
+          {sessions.map((s) => (<tr key={s.id}><td className="code" style={{ whiteSpace: "nowrap" }}>{new Date(s.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td><td className="code">{s.slot}</td><td style={{ fontWeight: 500 }}><Link href={sessionHref(s.id)}>{s.course.name}</Link>{s.section && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem" }}>Sec {s.section}</span>}</td><td>{s._count.attendance > 0 ? <span className="pill pill-good">{s._count.attendance}</span> : <span className="code">—</span>}</td></tr>))}
         </tbody></table></div>
       </div>
     );
   }
   const ses = await prisma.session.findUnique({ where: { id: sessionId }, include: { course: true } });
-  if (!ses) return <div className="card">Session not found. <Link href="/cohort?tab=roster">Back</Link></div>;
+  if (!ses) return <div className="card">Session not found. <Link href={listHref}>Back</Link></div>;
   const enrolled = await prisma.enrollment.findMany({ where: { courseId: ses.courseId }, include: { student: true }, orderBy: { student: { studentId: "asc" } } });
   const existing = new Map((await prisma.attendance.findMany({ where: { sessionId } })).map((a) => [a.studentId, a.status]));
   const firstTime = existing.size === 0;
@@ -194,7 +198,7 @@ export async function RosterView({ sessionId, program }: { sessionId?: string; p
       <input type="hidden" name="sessionId" value={sessionId} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: ".6rem", flexWrap: "wrap" }}>
         <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "1.15rem" }}>{ses.course.name}</div>
-        <Link href="/cohort?tab=roster" className="code">← all sessions</Link>
+        <Link href={listHref} className="code">← all sessions</Link>
       </div>
       <div className="code" style={{ margin: ".2rem 0 1rem" }}>{formatDay(sessionKey(ses.date))} · {ses.slot}{ses.section ? ` · Sec ${ses.section}` : ""} · {ses.professor || "—"} · {enrolled.length} enrolled</div>
       <div className="scroll-x" style={{ maxHeight: "56vh", overflowY: "auto", marginBottom: "1rem" }}><table><thead><tr><th>Roll</th><th>Name</th><th style={{ textAlign: "right" }}>Status</th></tr></thead><tbody>

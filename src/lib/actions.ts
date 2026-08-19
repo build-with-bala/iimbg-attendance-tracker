@@ -1,6 +1,7 @@
 "use server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/viewer";
 import { revalidatePath } from "next/cache";
 import { normalizeStatus } from "@/lib/status";
 
@@ -51,9 +52,9 @@ export async function saveSections(formData: FormData) {
 
 // Admin marks a whole roster for a session.
 export async function saveRoster(formData: FormData) {
-  const session = await auth();
-  if ((session?.user as any)?.role !== "admin") throw new Error("forbidden");
-  const email = session!.user!.email!;
+  // requireAdmin, not the JWT role: the JWT only knows ADMIN_EMAILS, so a
+  // colleague granted access on the Access page would be refused here.
+  const email = (await requireAdmin()).email;
   const sessionId = String(formData.get("sessionId"));
   const ses = await prisma.session.findUnique({ where: { id: sessionId } });
   if (!ses) throw new Error("no session");
@@ -66,5 +67,7 @@ export async function saveRoster(formData: FormData) {
       update: { status, markedBy: email, markedAt: new Date() },
     });
   }));
+  // marking now lives in the console, and the numbers it feeds are read there
+  revalidatePath("/admin", "layout");
   revalidatePath("/cohort");
 }

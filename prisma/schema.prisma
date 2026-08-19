@@ -62,3 +62,13 @@ model Attendance {
   markedAt  DateTime @default(now())
   @@unique([sessionId, studentId])
 }
+
+// Admins granted from inside the app (Access page). Root admins live in
+// lib/admins.ts + ADMIN_EMAILS and are not stored here, so a bad revoke can
+// never lock everyone out of the console.
+model AdminUser {
+  id      String   @id @default(cuid())
+  email   String   @unique
+  addedBy String
+  addedAt DateTime @default(now())
+}
