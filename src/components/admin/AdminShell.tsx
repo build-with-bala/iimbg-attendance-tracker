@@ -29,6 +29,10 @@ const CSS = `
 .alink.on{color:var(--accent);font-weight:600;background:var(--glass-strong);border-color:var(--edge);
   box-shadow:inset 0 1px 0 var(--edge-hi),0 2px 12px color-mix(in srgb, var(--accent) 20%, transparent)}
 .alink .ico{flex:none;opacity:.92}
+.abadge{margin-left:auto;font-family:var(--font-mono);font-size:.6rem;font-weight:600;line-height:1;
+  padding:3px 6px;border-radius:999px;color:var(--warn);
+  background:color-mix(in srgb, var(--warn) 16%, transparent);
+  border:1px solid color-mix(in srgb, var(--warn) 38%, transparent)}
 .afoot{margin-top:auto;padding-top:13px;border-top:1px solid var(--divider);display:flex;flex-direction:column;gap:9px}
 .awho{display:flex;flex-direction:column;line-height:1.35;padding:1px 4px;min-width:0}
 .awho .em{font-size:.76rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -57,11 +61,14 @@ export function AdminShell({
   email,
   root,
   isStudent,
+  badges = {},
   children,
 }: {
   email: string;
   root: boolean;
   isStudent: boolean;
+  /** href -> count, drawn on the rail so a full queue is visible from anywhere. */
+  badges?: Record<string, number>;
   children: React.ReactNode;
 }) {
   const path = usePathname();
@@ -108,6 +115,7 @@ export function AdminShell({
               <Link key={it.href} href={it.href} className={"alink" + (on(it.href) ? " on" : "")} title={it.hint}>
                 <Icon name={it.icon} />
                 {it.label}
+                {!!badges[it.href] && <span className="abadge">{badges[it.href]}</span>}
               </Link>
             ))}
           </div>

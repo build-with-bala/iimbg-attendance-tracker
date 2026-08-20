@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { consoleOverview, courseStandings, sessionCoverage } from "@/lib/admin-stats";
+import { ticketCounts } from "@/lib/ticket-data";
 import { weeklyTrend } from "@/lib/analytics";
 import { programName } from "@/lib/programs";
 import { formatDay, todayKey } from "@/lib/dates";
@@ -11,11 +12,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminOverview({ searchParams }: { searchParams: { program?: string } }) {
   const { program, programs } = await resolveProgram(searchParams.program);
-  const [o, courses, coverage, trend] = await Promise.all([
+  const [o, courses, coverage, trend, tickets] = await Promise.all([
     consoleOverview(program),
     courseStandings(program),
     sessionCoverage(program),
     weeklyTrend(undefined, program),
+    ticketCounts(),
   ]);
 
   const today = todayKey();
@@ -65,6 +67,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: { 
         <Stat label="Sessions" value={o.sessions} hint={`${o.sessionsHeld} held so far`} />
         <Stat label="Marks recorded" value={o.marks} hint={`${o.od} on duty`} />
         <Stat label="Never marked" value={o.unmarkedStudents} t={o.unmarkedStudents ? "warn" : "good"} hint="students with no attendance" />
+        <Stat label="Queries waiting" value={tickets.open} t={tickets.open ? "warn" : "good"} hint={<Link href="/admin/queries" className="code">open the queue →</Link>} />
       </Grid>
 
       <div style={{ height: "1.15rem" }} />

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/viewer";
 import { isRootAdmin } from "@/lib/admins";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { ticketCounts } from "@/lib/ticket-data";
 import { Backdrop } from "@/components/Backdrop";
 
 export const dynamic = "force-dynamic";
@@ -32,10 +33,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
+  const counts = await ticketCounts();
+
   return (
     <>
       <Backdrop variant="ambient" />
-      <AdminShell email={viewer.email} root={isRootAdmin(viewer.email)} isStudent={!!viewer.student}>
+      <AdminShell
+        email={viewer.email}
+        root={isRootAdmin(viewer.email)}
+        isStudent={!!viewer.student}
+        badges={{ "/admin/queries": counts.open }}
+      >
         {children}
       </AdminShell>
     </>

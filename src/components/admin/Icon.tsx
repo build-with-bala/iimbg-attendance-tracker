@@ -1,6 +1,6 @@
 export type IconKey =
   | "home" | "users" | "book" | "calendar" | "check" | "spark" | "shield"
-  | "sun" | "moon" | "logout" | "menu" | "close" | "back";
+  | "sun" | "moon" | "logout" | "menu" | "close" | "back" | "chat";
 
 const P: Record<IconKey, string> = {
   home: "M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5",
@@ -16,6 +16,7 @@ const P: Record<IconKey, string> = {
   menu: "M3.5 6.5h17M3.5 12h17M3.5 17.5h17",
   close: "M18.5 5.5l-13 13M5.5 5.5l13 13",
   back: "M15.5 19.5 8 12l7.5-7.5",
+  chat: "M20.5 11.6a7.6 7.6 0 0 1-8.2 7.6 8.7 8.7 0 0 1-2.5-.5L4.5 20.5l1.8-5.2a7.6 7.6 0 0 1-.8-3.4 7.6 7.6 0 0 1 7.6-7.6h.5a7.6 7.6 0 0 1 7.1 7.1z",
 };
 
 export default function Icon({ name, size = 16 }: { name: IconKey; size?: number }) {

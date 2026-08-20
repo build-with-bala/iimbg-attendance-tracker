@@ -9,21 +9,22 @@ datasource db {
 
 model Student {
   id          String       @id @default(cuid())
-  studentId   String       @unique            // e.g. DBM/1016/03
+  studentId   String       @unique // e.g. DBM/1016/03
   name        String
   email       String       @unique
-  program     String                          // DBM / MBA / HHM
-  batch       String                          // e.g. 03 / 11
+  program     String // DBM / MBA / HHM
+  batch       String // e.g. 03 / 11
   enrollments Enrollment[]
   attendance  Attendance[]
+  tickets     Ticket[]
 }
 
 model Course {
   id          String       @id @default(cuid())
-  code        String       @unique            // DT403
+  code        String       @unique // DT403
   name        String
   credits     Float
-  term        Int                             // 4 / 5 / 6
+  term        Int // 4 / 5 / 6
   program     String
   enrollments Enrollment[]
   sessions    Session[]
@@ -36,6 +37,7 @@ model Enrollment {
   course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId  String
   section   String  @default("") // student's chosen section for multi-section courses; "" = not chosen
+
   @@unique([studentId, courseId])
 }
 
@@ -43,11 +45,13 @@ model Session {
   id         String       @id @default(cuid())
   course     Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId   String
-  date       DateTime                         // day of class
-  slot       String                           // "09:00-10:30"
-  section    String       @default("")     // "A"/"B" when the schedule splits sections; "" = whole cohort
+  date       DateTime // day of class
+  slot       String // "09:00-10:30"
+  section    String       @default("") // "A"/"B" when the schedule splits sections; "" = whole cohort
   professor  String?
   attendance Attendance[]
+  tickets    Ticket[]
+
   @@unique([courseId, date, slot, section])
 }
 
@@ -57,9 +61,10 @@ model Attendance {
   sessionId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   studentId String
-  status    String                            // PRESENT | ABSENT
+  status    String // PRESENT | ABSENT
   markedBy  String
   markedAt  DateTime @default(now())
+
   @@unique([sessionId, studentId])
 }
 
@@ -71,4 +76,54 @@ model AdminUser {
   email   String   @unique
   addedBy String
   addedAt DateTime @default(now())
+}
+
+// ---- Tickets: questions students raise, and suggestions they want built ----
+// One board, two kinds. Author identity is kept as email+name rather than only a
+// Student FK, so faculty or a committee account with no roster row can post too.
+model Ticket {
+  id          Int             @id @default(autoincrement())
+  kind        String // QUERY | SUGGESTION
+  category    String // attendance | timetable | section | data | feature | ui | other
+  subject     String
+  status      String          @default("OPEN") // OPEN | ANSWERED | PLANNED | DECLINED | RESOLVED
+  authorEmail String
+  authorName  String
+  student     Student?        @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  studentId   String?
+  // Attendance disputes point at the exact class, so an admin can correct the
+  // mark from the thread instead of hunting for it in the roster.
+  session     Session?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  sessionId   String?
+  messages    TicketMessage[]
+  votes       TicketVote[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([kind, status, updatedAt])
+  @@index([studentId])
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId    Int
+  authorEmail String
+  authorName  String
+  fromAdmin   Boolean  @default(false)
+  body        String
+  createdAt   DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+// "Me too" on a suggestion — one per person, so the console can rank by demand.
+model TicketVote {
+  id       String   @id @default(cuid())
+  ticket   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId Int
+  email    String
+  votedAt  DateTime @default(now())
+
+  @@unique([ticketId, email])
 }

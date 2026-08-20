@@ -20,6 +20,12 @@ export const ADMIN_NAV: NavGroup[] = [
     ],
   },
   {
+    title: "Support",
+    items: [
+      { href: "/admin/queries", label: "Queries", icon: "chat", hint: "Questions and suggestions from students" },
+    ],
+  },
+  {
     title: "Analysis",
     items: [
       { href: "/admin/insights", label: "Insights", icon: "spark", hint: "Correlations, slots and professors" },
