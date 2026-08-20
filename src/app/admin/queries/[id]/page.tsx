@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getViewer } from "@/lib/viewer";
 import { getTicket } from "@/lib/ticket-data";
 import { setTicketStatus, fixMarkFromTicket } from "@/lib/ticket-actions";
@@ -12,7 +12,12 @@ import { Messages, StatusPill, KindPill, CategoryPill, LinkedClass, when } from 
 export const dynamic = "force-dynamic";
 
 export default async function AdminQueryThread({ params }: { params: { id: string } }) {
-  const viewer = (await getViewer())!;
+  // Guard here, not just in the layout: Next renders layout and page in
+  // parallel, so the layout's redirect does not stop this from running with no
+  // viewer — which threw on every signed-out hit.
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+  if (!viewer.isAdmin) redirect("/");
   const id = Number(params.id);
   if (!Number.isFinite(id)) notFound();
   const t = await getTicket(viewer, id);

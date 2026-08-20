@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/viewer";
 import { listTickets, ticketCounts } from "@/lib/ticket-data";
 import { KIND_META, categoryLabel } from "@/lib/tickets";
@@ -16,7 +17,12 @@ const VIEWS = [
 ] as const;
 
 export default async function AdminQueries({ searchParams }: { searchParams: { view?: string } }) {
-  const viewer = (await getViewer())!;
+  // Guard here, not just in the layout: Next renders layout and page in
+  // parallel, so the layout's redirect does not stop this from running with no
+  // viewer — which threw on every signed-out hit.
+  const viewer = await getViewer();
+  if (!viewer) redirect("/login");
+  if (!viewer.isAdmin) redirect("/");
   const view = VIEWS.find((v) => v.key === searchParams.view) ?? VIEWS[0];
   const [rows, counts] = await Promise.all([listTickets(viewer, view.where as any), ticketCounts()]);
 
