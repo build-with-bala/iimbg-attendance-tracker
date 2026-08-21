@@ -6,6 +6,7 @@ import { SectionSwitch, BottomNav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Tilt } from "@/components/Tilt";
 import { Backdrop } from "@/components/Backdrop";
+import { WorkspaceSwitch } from "@/components/WorkspaceSwitch";
 
 // The seeker-facing chrome: topbar + bottom nav. /admin deliberately does not
 // share this — it gets the console rail instead.
@@ -21,11 +22,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/" className="brand"><span className="brand-mark">▦</span><span className="brand-txt">Register</span></Link>
         <div className="topbar-center"><SectionSwitch items={items} /></div>
         <div className="topbar-right">
+          {/* first in the bar, and never allowed to shrink — the old admin link
+              lived inside .who and collapsed to zero width on a phone, which left
+              admins with no way into the console at all */}
+          {viewer.isAdmin && <WorkspaceSwitch here="app" appHref={viewer.student ? "/student" : "/cohort"} />}
           <ThemeToggle />
           <div className="who">
             <span className="who-name">{viewer.name}</span>
-            {viewer.isAdmin && <Link href="/admin" className="pill pill-warn" style={{ textDecoration: "none" }}>admin ↗</Link>}
-            {viewer.student && <span className="pill">student</span>}
+            {!viewer.isAdmin && viewer.student && <span className="pill">student</span>}
           </div>
           <form action={async () => { "use server"; await signOut({ redirectTo: "/login" }); }}><button className="btn icon-btn" title="Sign out" aria-label="Sign out">⏻</button></form>
         </div>
@@ -46,7 +50,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .brand-mark { color: var(--accent); font-size: 1.2rem; }
         .brand-txt { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; }
         .topbar-center { justify-self: center; }
-        .topbar-right { justify-self: end; display: flex; align-items: center; gap: .8rem; }
+        .topbar-right { justify-self: end; display: flex; align-items: center; gap: .8rem; min-width: 0; }
+        .topbar-right > * { flex: none; }
         .who { display: flex; align-items: center; gap: .5rem; }
         .who-name { font-size: .82rem; color: var(--muted); max-width: 15ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .content { max-width: 1120px; margin: 0 auto; padding: clamp(1.4rem, 3vw, 2.4rem) clamp(1rem, 4vw, 2.2rem) 3rem; }
@@ -55,6 +60,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           .topbar { grid-template-columns: 1fr auto; }
           .topbar-center { display: none; }
           .who-name { display: none; }
+          .who:empty { display: none; }
+          .topbar-right { gap: .5rem; }
           .content { padding-bottom: 6rem; }
         }
       ` }} />

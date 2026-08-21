@@ -67,9 +67,11 @@ export default async function AdminSessions({ searchParams }: { searchParams: { 
         {shown.length === 0 ? (
           <Empty>{view === "unmarked" ? "Every class held so far has been marked." : "Nothing here."}</Empty>
         ) : (
-          <div style={{ display: "grid", gap: "1.1rem" }}>
+          <div style={{ display: "grid", gap: "1.1rem", minWidth: 0 }}>
             {[...byDate.entries()].map(([d, list]) => (
-              <div key={d}>
+              // min-width:0 or this grid item takes the table's min-content width
+              // and pushes the page sideways instead of letting .scroll-x scroll
+              <div key={d} style={{ minWidth: 0 }}>
                 <div className="eyebrow" style={{ marginBottom: ".5rem" }}>
                   {formatDay(d, { weekday: "long", day: "2-digit", month: "long" })}
                   {d === today && <span style={{ color: "var(--accent-2)" }}> · today</span>}

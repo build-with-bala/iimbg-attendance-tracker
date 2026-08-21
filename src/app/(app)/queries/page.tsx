@@ -39,17 +39,16 @@ export default async function QueriesBoard({ searchParams }: { searchParams: { t
         <h1 style={{ fontSize: "clamp(2rem, 4vw, 2.7rem)", marginTop: ".5rem" }}>Queries</h1>
         <p style={{ color: "var(--muted)", fontSize: ".9rem", margin: ".6rem 0 0", maxWidth: "42rem" }}>
           Something wrong with your attendance, or an idea for the app? Post it here and the committee picks it up.
-          Suggestions are public so you can back one instead of filing it twice.
         </p>
       </div>
 
-      <div className="seg" style={{ overflowX: "auto" }}>
+      <div className="seg-scroll"><div className="seg">
         {TABS.map((t) => (
           <Link key={t.key} href={`/queries?tab=${t.key}`} className={"seg-it" + (t.key === tab ? " seg-on" : "")}>
             {t.label}
           </Link>
         ))}
-      </div>
+      </div></div>
 
       {!mine && <Composer kind={kind} sessions={sessionOpts} />}
 
@@ -64,14 +63,14 @@ export default async function QueriesBoard({ searchParams }: { searchParams: { t
         ) : (
           <div style={{ display: "grid", gap: ".7rem" }}>
             {tickets.map((t) => (
-              <div key={t.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: ".9rem", padding: ".8rem 0", borderTop: "1px solid var(--divider)" }}>
-                <div style={{ minWidth: 0 }}>
+              <div key={t.id} className="tk-row">
+                <div>
                   <div style={{ display: "flex", alignItems: "center", gap: ".5rem", flexWrap: "wrap", marginBottom: ".3rem" }}>
                     <span className="code" style={{ fontSize: ".7rem" }}>#{t.id}</span>
                     <StatusPill status={t.status} />
                     <CategoryPill kind={t.kind} category={t.category} />
                   </div>
-                  <Link href={`/queries/${t.id}`} style={{ fontFamily: "var(--font-display)", fontSize: "1.02rem" }}>{t.subject}</Link>
+                  <Link href={`/queries/${t.id}`} className="tk-subject">{t.subject}</Link>
                   <div className="code" style={{ marginTop: ".25rem", fontSize: ".72rem" }}>
                     {t.authorEmail === viewer.email.toLowerCase() ? "you" : t.authorName}
                     {" · "}{when(t.updatedAt)}

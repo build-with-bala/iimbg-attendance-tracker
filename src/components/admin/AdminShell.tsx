@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ADMIN_NAV } from "@/components/admin/nav";
 import Icon from "@/components/admin/Icon";
+import { WorkspaceSwitch } from "@/components/WorkspaceSwitch";
 
 const CSS = `
 /* The console is dense with tables and numbers, so the aurora drops to a hum —
@@ -15,7 +16,13 @@ const CSS = `
   background:color-mix(in srgb, var(--bg) 62%, transparent);
   -webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);
   border-right:1px solid var(--divider)}
-.abrand{display:flex;align-items:center;gap:9px;padding:5px 9px 17px}
+.abrand{display:flex;align-items:center;gap:9px;padding:5px 9px 13px}
+.awsw{padding:0 4px 6px}
+.awsw .wsw{width:100%}
+.awsw .wsw-it{flex:1;justify-content:center}
+/* the rail is 246px wide, so it keeps the words even on a phone where the
+   top bars drop to glyphs */
+.awsw .wsw-lbl{display:inline}
 .abrand .mk{color:var(--accent);font-size:1.15rem;line-height:1}
 .abrand .nm{font-family:var(--font-display);font-size:1.06rem;font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .abrand .tg{font-family:var(--font-mono);font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-2);
@@ -72,6 +79,7 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const path = usePathname();
+  const appHref = isStudent ? "/student" : "/cohort";
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -98,6 +106,7 @@ export function AdminShell({
           <Icon name="menu" />
         </button>
         <span className="nm">Register <span style={{ color: "var(--accent-2)", fontSize: ".72rem" }}>Admin</span></span>
+        <div style={{ marginLeft: "auto" }}><WorkspaceSwitch here="console" appHref={appHref} /></div>
       </div>
       <div className={"ascrim" + (open ? " show" : "")} onClick={() => setOpen(false)} />
 
@@ -107,6 +116,8 @@ export function AdminShell({
           <span className="nm">Register</span>
           <span className="tg">Admin</span>
         </div>
+
+        <div className="awsw"><WorkspaceSwitch here="console" appHref={appHref} /></div>
 
         {ADMIN_NAV.map((g, i) => (
           <div className="agrp" key={i}>
@@ -131,10 +142,6 @@ export function AdminShell({
               <Icon name={theme === "dark" ? "sun" : "moon"} size={14} />
               {theme === "dark" ? "Light" : "Dark"}
             </button>
-            <Link className="btn" href={isStudent ? "/student" : "/cohort"} style={{ textDecoration: "none" }}>
-              <Icon name="back" size={14} />
-              App
-            </Link>
           </div>
         </div>
       </aside>

@@ -25,9 +25,9 @@ export function Panel({ title, right, children, pad }: { title?: string; right?:
   return (
     <section className="card" style={pad ? { padding: pad } : undefined}>
       {(title || right) && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: ".7rem", marginBottom: ".95rem", flexWrap: "wrap" }}>
-          {title && <div className="eyebrow">{title}</div>}
-          {right}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: ".7rem", marginBottom: ".95rem", flexWrap: "wrap", minWidth: 0 }}>
+          {title && <div className="eyebrow" style={{ minWidth: 0 }}>{title}</div>}
+          {right && <div className="seg-scroll">{right}</div>}
         </div>
       )}
       {children}

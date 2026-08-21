@@ -23,15 +23,25 @@ export function Composer({ kind, sessions }: { kind: Kind; sessions: SessionOpt[
   const meta = KIND_META[kind];
   // The class picker only earns its place on an attendance dispute.
   const wantsClass = kind === "QUERY" && category === "attendance" && sessions.length > 0;
+  // Per-kind id so the two tabs never share a toggle.
+  const toggleId = `cmp-${kind.toLowerCase()}`;
 
   return (
     <form action={action} className="card">
       <input type="hidden" name="kind" value={kind} />
-      <div className="eyebrow">{meta.verb}</div>
-      <p style={{ color: "var(--muted)", fontSize: ".85rem", margin: ".5rem 0 1rem" }}>{meta.blurb}</p>
 
-      <div style={{ display: "grid", gap: ".7rem" }}>
-        <label style={{ display: "grid", gap: ".3rem" }}>
+      {/* checkbox + label drive the mobile collapse; see .cmp-* in globals.css */}
+      <input className="cmp-toggle" type="checkbox" id={toggleId} />
+      <div className="eyebrow cmp-eyebrow">{meta.verb}</div>
+      <label className="cmp-open" htmlFor={toggleId}>
+        <span>{meta.ico} {meta.verb}</span>
+        <span className="chev" aria-hidden>&#9662;</span>
+      </label>
+
+      <p className="cmp-blurb" style={{ color: "var(--muted)", fontSize: ".85rem", margin: ".5rem 0 1rem" }}>{meta.blurb}</p>
+
+      <div className="cmp-fields">
+        <label>
           <span className="code">Type</span>
           <select name="category" value={category} onChange={(e) => setCategory(e.target.value)}>
             {CATEGORIES[kind].map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
@@ -39,7 +49,7 @@ export function Composer({ kind, sessions }: { kind: Kind; sessions: SessionOpt[
         </label>
 
         {wantsClass && (
-          <label style={{ display: "grid", gap: ".3rem" }}>
+          <label>
             <span className="code">Which class? <span style={{ color: "var(--faint)" }}>(optional - lets an admin fix it here)</span></span>
             <select name="sessionId" defaultValue="">
               <option value="">- not about one class -</option>
@@ -48,21 +58,23 @@ export function Composer({ kind, sessions }: { kind: Kind; sessions: SessionOpt[
           </label>
         )}
 
-        <label style={{ display: "grid", gap: ".3rem" }}>
+        <label>
           <span className="code">Title</span>
           <input name="subject" maxLength={MAX_SUBJECT} required
-            placeholder={kind === "QUERY" ? "Marked absent for DT403 on 12 Aug" : "Show a weekly attendance summary on the dashboard"} />
+            placeholder={kind === "QUERY" ? "Marked absent for DT403 on 12 Aug" : "Show a weekly attendance summary"} />
         </label>
 
-        <label style={{ display: "grid", gap: ".3rem" }}>
+        <label>
           <span className="code">Details</span>
           <textarea name="body" rows={4} maxLength={MAX_BODY} required
             placeholder={kind === "QUERY" ? "What happened, and what you think it should say." : "What you'd like, and why it would help."} />
         </label>
       </div>
 
-      <div style={{ marginTop: "1rem" }}><Submit label={meta.verb} /></div>
-      <Note state={state} />
+      <div className="cmp-submit" style={{ marginTop: "1rem" }}>
+        <Submit label={meta.verb} />
+        <Note state={state} />
+      </div>
     </form>
   );
 }
