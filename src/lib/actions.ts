@@ -4,24 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/viewer";
 import { revalidatePath } from "next/cache";
 import { normalizeStatus } from "@/lib/status";
+import { markOwnAttendance } from "@/lib/self-mark";
 
 // Student marks their own attendance for one session (must be enrolled).
 export async function markSelf(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) throw new Error("unauth");
-  const student = await prisma.student.findUnique({ where: { email: session.user.email.toLowerCase() } });
-  if (!student) throw new Error("no student");
-  const sessionId = String(formData.get("sessionId"));
-  const status = normalizeStatus(formData.get("status"));
-  const ses = await prisma.session.findUnique({ where: { id: sessionId } });
-  if (!ses) throw new Error("no session");
-  const enrolled = await prisma.enrollment.findUnique({ where: { studentId_courseId: { studentId: student.id, courseId: ses.courseId } } });
-  if (!enrolled) throw new Error("not enrolled");
-  await prisma.attendance.upsert({
-    where: { sessionId_studentId: { sessionId, studentId: student.id } },
-    create: { sessionId, studentId: student.id, status, markedBy: "self:" + student.email },
-    update: { status, markedBy: "self:" + student.email, markedAt: new Date() },
-  });
+  await markOwnAttendance(session.user.email, String(formData.get("sessionId")), normalizeStatus(formData.get("status")));
   revalidatePath("/student");
 }
 
