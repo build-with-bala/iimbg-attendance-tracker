@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { weeklyTrend } from "@/lib/analytics";
-import { mySubjects, studentSafety, studentDay, sectionChoices } from "@/lib/insights";
+import { mySubjects, studentSafety, studentDay, sectionChoices, ROMAN } from "@/lib/insights";
 import { saveSections } from "@/lib/actions";
 import { POLICY, type Safety } from "@/lib/grades";
 import { formatDay, sessionKey } from "@/lib/dates";
@@ -17,11 +17,14 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ---- Section onboarding: pick your section for each multi-section elective ----
 export async function SectionOnboarding({ studentId, blocking = true }: { studentId: string; blocking?: boolean }) {
-  const choices = await sectionChoices(studentId);
+  const all = await sectionChoices(studentId);
+  // While blocking, only ask about electives still missing a section (a new term's);
+  // earlier picks stay as they are and remain editable in the Sections tab.
+  const choices = blocking ? all.filter((c) => !c.chosen) : all;
   if (choices.length === 0) return null;
   return (
     <form action={saveSections} className="card" style={{ maxWidth: "44rem", margin: "0 auto" }}>
-      <div className="eyebrow">{blocking ? "One-time setup" : "Your sections"}</div>
+      <div className="eyebrow">{blocking ? `Term ${ROMAN[choices[0].term] ?? choices[0].term} setup` : "Your sections"}</div>
       <h2 style={{ fontSize: "1.5rem", margin: ".5rem 0 .3rem" }}>Which section are you in?</h2>
       <p style={{ color: "var(--muted)", fontSize: ".9rem", margin: "0 0 1.3rem", lineHeight: 1.5 }}>
         {choices.length === 1 ? "One of your electives runs" : `${choices.length} of your electives run`} in multiple sections and the timetable can&apos;t tell which one is yours. Pick yours so we only show your classes — you can change this here anytime.
@@ -29,7 +32,7 @@ export async function SectionOnboarding({ studentId, blocking = true }: { studen
       <div style={{ display: "grid", gap: "1rem" }}>
         {choices.map((c) => (
           <div key={c.courseId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: ".6rem", paddingBottom: ".9rem", borderBottom: "1px solid var(--divider)" }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "1.02rem" }}>{c.name}</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "1.02rem" }}>{c.name} <span className="code" style={{ color: "var(--muted)", fontSize: ".75rem" }}>Term {ROMAN[c.term] ?? c.term}</span></span>
             <span className="mark" role="radiogroup" aria-label={`Section for ${c.name}`}>
               {c.sections.map((s) => (
                 <label key={s} className="secpick">

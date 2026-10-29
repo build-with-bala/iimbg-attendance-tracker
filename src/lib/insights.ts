@@ -49,7 +49,7 @@ export async function sectionChoices(studentId: string) {
   const enrollments = await prisma.enrollment.findMany({
     where: { studentId },
     include: { course: true },
-    orderBy: { course: { code: "asc" } },
+    orderBy: [{ course: { term: "desc" } }, { course: { code: "asc" } }],
   });
   if (enrollments.length === 0) return [];
   const groups = await prisma.session.groupBy({ by: ["courseId", "section"], where: { courseId: { in: enrollments.map((e) => e.courseId) }, NOT: { section: "" } }, _count: true });
@@ -57,7 +57,7 @@ export async function sectionChoices(studentId: string) {
   for (const g of groups) (secByCourse.get(g.courseId) ?? secByCourse.set(g.courseId, []).get(g.courseId)!).push(g.section);
   return enrollments
     .filter((e) => secByCourse.has(e.courseId))
-    .map((e) => ({ courseId: e.courseId, name: e.course.name, code: e.course.code, sections: secByCourse.get(e.courseId)!.sort(), chosen: e.section }));
+    .map((e) => ({ courseId: e.courseId, name: e.course.name, code: e.course.code, term: e.course.term, sections: secByCourse.get(e.courseId)!.sort(), chosen: e.section }));
 }
 
 // ---- Course popularity: how many students opted each subject ----
@@ -224,7 +224,7 @@ export async function studentDay(studentId: string) {
 }
 
 // ---- Cohort label: the shown programme + its loaded term(s) ----
-const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+export const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 export async function cohortLabel(program: string) {
   const groups = await prisma.course.findMany({ where: { program }, select: { term: true }, distinct: ["term"] });
   if (groups.length === 0) return programName(program) || "Cohort";
