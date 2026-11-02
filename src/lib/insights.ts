@@ -1,7 +1,8 @@
+import { attendanceToDate } from "./attendance-to-date";
 import { CURRENT_TERM } from "./terms";
 import { prisma } from "./prisma";
 import { isPresent, isOD } from "./status";
-import { todayKey, sessionKey } from "./dates";
+import { todayKey, sessionKey, dayKey } from "./dates";
 import { programName } from "./programs";
 
 function pct(p: number, t: number) {
@@ -163,7 +164,7 @@ export async function compareStudents(aId: string, bId: string, term = CURRENT_T
 }
 
 // ---- Student skip-budget / grade safety (per course + overall) ----
-import { safety } from "./grades";
+import { safety, creditClassTotal } from "./grades";
 export async function studentSafety(studentId: string, term = CURRENT_TERM) {
   const enrollments = await prisma.enrollment.findMany({
     where: { studentId, course: { term } },
@@ -183,9 +184,10 @@ export async function studentSafety(studentId: string, term = CURRENT_TERM) {
     if (isOD(a.status)) od.set(cid, (od.get(cid) ?? 0) + 1);
   }
   const courses = enrollments.map((e) => {
-    const total = effTotals.get(e.courseId) ?? 0;
+    const scheduled = effTotals.get(e.courseId) ?? 0;
+    const total = creditClassTotal(e.course.credits, scheduled);
     const s = safety(present.get(e.courseId) ?? 0, held.get(e.courseId) ?? 0, total, od.get(e.courseId) ?? 0);
-    return { id: e.course.id, name: e.course.name, code: e.course.code, term: e.course.term, credits: e.course.credits, ...s };
+    return { id: e.course.id, name: e.course.name, code: e.course.code, term: e.course.term, credits: e.course.credits, scheduled, ...s };
   }).filter((c) => c.total > 0);
 
   const totP = courses.reduce((a, c) => a + c.present, 0);
@@ -248,4 +250,16 @@ export async function allClasses(program: string, term = CURRENT_TERM) {
     orderBy: [{ date: "asc" }, { slot: "asc" }],
   });
   return sessions;
+}
+
+// Classes that have finished by campus time, including unmarked classes.
+// Numerator includes PRESENT and OD; the denominator never depends on marking.
+export async function studentAttendanceToDate(studentId: string, term = CURRENT_TERM, now = new Date()) {
+  const enrollments = await prisma.enrollment.findMany({ where: { studentId, course: { term } }, select: { courseId: true, section: true } });
+  const sections = new Map(enrollments.map((e) => [e.courseId, e.section]));
+  const sessions = await prisma.session.findMany({
+    where: { courseId: { in: enrollments.map((e) => e.courseId) }, date: { lte: new Date(dayKey(now) + "T23:59:59Z") } },
+    select: { courseId: true, date: true, slot: true, section: true, attendance: { where: { studentId }, select: { status: true } } },
+  });
+  return attendanceToDate(sessions.filter((s) => s.section === "" || !sections.get(s.courseId) || s.section === sections.get(s.courseId)).map((s) => ({ ...s, status: s.attendance[0]?.status })), now);
 }

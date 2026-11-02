@@ -26,7 +26,8 @@ export function gradeStatus(projected: number | null): Status {
 // Max classes still skippable to finish >= theta% (given attended P, marked H, term total T).
 export function maxSkip(present: number, held: number, total: number, theta: number) {
   const remaining = Math.max(0, total - held);
-  const k = Math.floor(present + remaining - (theta / 100) * total);
+  const required = Math.ceil((theta * total) / 100);
+  const k = present + remaining - required;
   return Math.max(0, Math.min(remaining, k));
 }
 
@@ -56,4 +57,10 @@ export function safety(present: number, held: number, total: number, od = 0): Sa
     status: gradeStatus(projected),
     cushion: Math.floor(present - (POLICY.safe / 100) * total),
   };
+}
+
+// One credit is 10 teaching hours; each class is 90 minutes.
+// Credit totals remain stable when the imported timetable is incomplete.
+export function creditClassTotal(credits: number, scheduled = 0) {
+  return Number.isFinite(credits) && credits > 0 ? Math.round((credits * 20) / 3) : scheduled;
 }

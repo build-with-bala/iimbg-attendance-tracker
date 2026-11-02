@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { getViewer } from "@/lib/viewer";
 import { prisma } from "@/lib/prisma";
 import { CURRENT_TERM } from "@/lib/terms";
-import { loadedPrograms, coursePopularity, studentSafety, allClasses, ROMAN, courseRoster } from "@/lib/insights";
+import { loadedPrograms, coursePopularity, studentSafety, allClasses, ROMAN, courseRoster, studentAttendanceToDate } from "@/lib/insights";
 import { programName } from "@/lib/programs";
 import { Tabs } from "@/components/Tabs";
+import { AttendanceCount } from "@/components/AttendanceCount";
 import { MarkMeView } from "@/views/student";
 import { AnalyticsView } from "@/views/cohort";
 import { formatDay, sessionKey } from "@/lib/dates";
@@ -59,14 +60,14 @@ export default async function PreviousTermAudit({ searchParams }: { searchParams
 }
 
 async function AttendanceAudit({ studentId, term }: { studentId: string; term: number }) {
-  const { overall, courses } = await studentSafety(studentId, term);
+  const [{ courses }, tillDate] = await Promise.all([studentSafety(studentId, term), studentAttendanceToDate(studentId, term)]);
   return <div className="card">
     <div className="eyebrow">Term {ROMAN[term] ?? term} · My attendance</div>
-    <p style={{ margin: ".7rem 0" }}>{overall.present} attended / {overall.held} recorded · {overall.pct ?? "—"}% attendance</p>
+    <div style={{ margin: "1rem 0" }}><AttendanceCount counts={tillDate.overall} /></div>
     <p className="code" style={{ marginBottom: ".8rem" }}>OD counts as attended. Unmarked classes are not counted as absences.</p>
-    <div className="scroll-x"><table><thead><tr><th>Course</th><th>Attended</th><th>Recorded</th><th>Scheduled</th><th>Attendance</th></tr></thead><tbody>
-      {courses.map((c) => <tr key={c.id}><td>{c.name}</td><td className="num">{c.present}</td><td className="num">{c.held}</td><td className="num">{c.total}</td><td className="num">{c.pct ?? "—"}%</td></tr>)}
-      {!courses.length && <tr><td colSpan={5}>No scheduled subjects for this term.</td></tr>}
+    <div className="scroll-x"><table><thead><tr><th>Course</th><th>Attended / till date</th><th>Recorded</th><th>Full course</th></tr></thead><tbody>
+      {courses.map((c) => <tr key={c.id}><td>{c.name}</td><td><AttendanceCount counts={tillDate.byCourse.get(c.id)} compact /></td><td className="num">{tillDate.byCourse.get(c.id)?.marked ?? 0}</td><td className="num">{c.total}</td></tr>)}
+      {!courses.length && <tr><td colSpan={4}>No scheduled subjects for this term.</td></tr>}
     </tbody></table></div>
   </div>;
 }

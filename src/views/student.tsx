@@ -2,12 +2,12 @@ import { CURRENT_TERM } from "@/lib/terms";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { weeklyTrend } from "@/lib/analytics";
-import { mySubjects, studentSafety, studentDay, sectionChoices, ROMAN } from "@/lib/insights";
+import { mySubjects, studentSafety, studentDay, sectionChoices, studentAttendanceToDate, ROMAN } from "@/lib/insights";
 import { saveSections } from "@/lib/actions";
 import { POLICY, type Safety } from "@/lib/grades";
 import { formatDay, sessionKey } from "@/lib/dates";
 import { TrendLine } from "@/components/Charts";
-import { Ring, Meter } from "@/components/Ring";
+import { AttendanceCount } from "@/components/AttendanceCount";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { GradeGauge } from "@/components/GradeGauge";
 import { MarkControl, StatusPill } from "@/components/MarkControl";
@@ -109,13 +109,13 @@ async function TodayBlock({ studentId, compact = false }: { studentId: string; c
 }
 
 export async function StandingView({ studentId }: { studentId: string }) {
-  const [{ overall, courses }, trend] = await Promise.all([studentSafety(studentId), weeklyTrend(studentId)]);
+  const [{ overall, courses }, trend, tillDate] = await Promise.all([studentSafety(studentId), weeklyTrend(studentId), studentAttendanceToDate(studentId)]);
   const h = headline(overall);
 
   return (
     <div className="space-y-5">
       <div className="card tilt" data-stack style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "2.6rem", alignItems: "center", padding: "2rem 2.2rem" }}>
-        <div style={{ justifySelf: "center" }}><Ring value={overall.pct} size={214} label="attendance" /></div>
+        <div style={{ justifySelf: "center" }}><AttendanceCount counts={tillDate.overall} /></div>
         <div style={{ minWidth: 0 }}>
           <div className="eyebrow">{h.kicker}</div>
           <div style={{ display: "flex", alignItems: "baseline", gap: ".5rem", margin: ".4rem 0 .1rem" }}>
@@ -138,13 +138,13 @@ export async function StandingView({ studentId }: { studentId: string }) {
 
       <div className="card">
         <div className="eyebrow" style={{ marginBottom: ".2rem" }}>By course — where you can skip</div>
-        <p className="code" style={{ marginBottom: ".9rem" }}>Least room first. "Skip" = classes you can still miss and end ≥80%.</p>
-        <div className="scroll-x"><table><thead><tr><th>Course</th><th style={{ textAlign: "right" }}>You</th><th></th><th style={{ textAlign: "right" }}>Can skip</th><th style={{ textAlign: "right" }}>Grade</th></tr></thead><tbody>
+        <p className="code" style={{ marginBottom: ".9rem" }}>"Skip" uses the full course total from credits and recorded absences, to finish ≥80%. Unmarked past classes still need recording.</p>
+        <div className="scroll-x"><table><thead><tr><th>Course</th><th style={{ textAlign: "right" }}>Attended / till date</th><th style={{ textAlign: "right" }}>Full course</th><th style={{ textAlign: "right" }}>Can skip</th><th style={{ textAlign: "right" }}>Grade</th></tr></thead><tbody>
           {courses.map((c) => (
             <tr key={c.id}>
               <td style={{ fontWeight: 500 }}>{c.name}{c.od > 0 && <span className="code" style={{ color: "var(--accent-2)", marginLeft: ".45rem", whiteSpace: "nowrap" }}>+{c.od} OD</span>}</td>
-              <td className="num" style={{ textAlign: "right" }}>{c.pct ?? "—"}%</td>
-              <td style={{ width: 74 }}><Meter value={c.pct} width={62} /></td>
+              <td style={{ textAlign: "right" }}><AttendanceCount counts={tillDate.byCourse.get(c.id)} compact /></td>
+              <td className="num" style={{ textAlign: "right" }}>{c.total}</td>
               <td className="num" style={{ textAlign: "right", fontWeight: 600, color: c.skipSafe === 0 ? "var(--bad)" : "var(--text)" }}>{c.skipSafe}</td>
               <td style={{ textAlign: "right" }}><span style={{ color: toneColor(c.status.tone), fontFamily: "var(--font-mono)", fontSize: ".75rem" }}>{c.status.label}</span></td>
             </tr>
@@ -155,12 +155,9 @@ export async function StandingView({ studentId }: { studentId: string }) {
       <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.3rem" }}>
         <div className="card"><div className="eyebrow" style={{ marginBottom: ".9rem" }}>Weekly trend</div>{trend.length ? <TrendLine data={trend} /> : <Empty>Mark a class to start your trend.</Empty>}</div>
         <div className="card">
-          <div className="eyebrow" style={{ marginBottom: ".9rem" }}>You vs class</div>
-          {courses.length ? (
-            <div className="scroll-x"><table><thead><tr><th>Course</th><th style={{ textAlign: "right" }}>You</th><th></th></tr></thead><tbody>
-              {courses.map((c) => (<tr key={c.id}><td>{c.name}</td><td className="num" style={{ textAlign: "right" }}>{c.pct ?? "—"}%</td><td style={{ width: 70 }}><Meter value={c.pct} width={60} /></td></tr>))}
-            </tbody></table></div>
-          ) : <Empty>No attendance recorded yet.</Empty>}
+          <div className="eyebrow" style={{ marginBottom: ".9rem" }}>Recording status</div>
+          <p className="num">{tillDate.overall.marked} of {tillDate.overall.total} completed classes recorded</p>
+          <p className="code" style={{ marginTop: ".7rem", lineHeight: 1.7 }}>{tillDate.overall.unmarked > 0 ? `${tillDate.overall.unmarked} classes still need marking. Unmarked does not mean absent.` : "All completed classes have been recorded."} Classes later today and in the future are excluded from the attendance count.</p>
         </div>
       </div>
     </div>

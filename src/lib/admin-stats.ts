@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { isPresent, isOD } from "./status";
 import { todayKey, sessionKey } from "./dates";
 import { effectiveSessionTotals } from "./insights";
-import { POLICY, gradeStatus } from "./grades";
+import { POLICY, gradeStatus, creditClassTotal } from "./grades";
 
 const pct = (p: number, t: number) => (t === 0 ? null : Math.round((p / t) * 1000) / 10);
 
@@ -31,8 +31,10 @@ export type StudentRow = {
 
 /** Per-student standing across the whole programme. */
 export async function studentStandings(program: string): Promise<StudentRow[]> {
-  const { students, enrollments, attendance } = await consoleFacts(program);
+  const { courses, students, enrollments, attendance } = await consoleFacts(program);
   const totals = await effectiveSessionTotals([...new Set(enrollments.map((e) => e.courseId))]);
+
+  for (const course of courses) totals.set(course.id, creditClassTotal(course.credits, totals.get(course.id) ?? 0));
 
   const subjCount = new Map<string, number>();
   const termTotal = new Map<string, number>();
