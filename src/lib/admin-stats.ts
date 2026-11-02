@@ -1,3 +1,4 @@
+import { CURRENT_TERM } from "./terms";
 import { prisma } from "./prisma";
 import { isPresent, isOD } from "./status";
 import { todayKey, sessionKey } from "./dates";
@@ -9,12 +10,12 @@ const pct = (p: number, t: number) => (t === 0 ? null : Math.round((p / t) * 100
 /** One pass over a programme's attendance, reused by every console page. */
 export async function consoleFacts(program: string) {
   const [courses, students, sessions, enrollments, attendance] = await Promise.all([
-    prisma.course.findMany({ where: { program }, orderBy: [{ term: "asc" }, { code: "asc" }] }),
+    prisma.course.findMany({ where: { program, term: CURRENT_TERM }, orderBy: [{ term: "asc" }, { code: "asc" }] }),
     prisma.student.findMany({ where: { program }, orderBy: { studentId: "asc" } }),
-    prisma.session.findMany({ where: { course: { program } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }),
-    prisma.enrollment.findMany({ where: { course: { program } } }),
+    prisma.session.findMany({ where: { course: { program, term: CURRENT_TERM } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }),
+    prisma.enrollment.findMany({ where: { course: { program, term: CURRENT_TERM } } }),
     prisma.attendance.findMany({
-      where: { session: { course: { program } } },
+      where: { session: { course: { program, term: CURRENT_TERM } } },
       include: { session: { select: { id: true, courseId: true, date: true, slot: true, professor: true } } },
     }),
   ]);

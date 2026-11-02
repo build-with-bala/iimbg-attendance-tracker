@@ -1,3 +1,4 @@
+import { CURRENT_TERM } from "@/lib/terms";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { allClasses, coursePopularity, courseRoster, studentDirectory, compareStudents } from "@/lib/insights";
@@ -57,7 +58,7 @@ export async function TimetableView({ when = "today", program }: { when?: string
 // ---- Subjects popularity + roster ----
 export async function SubjectsView({ course, program }: { course?: string; program: string }) {
   const pop = await coursePopularity(program);
-  const roster = course ? await courseRoster(course) : null;
+  const roster = course && pop.some((c) => c.id === course) ? await courseRoster(course) : null;
   const maxOpted = Math.max(1, ...pop.map((p) => p.opted));
   return (
     <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: "1.1rem" }}>
@@ -100,7 +101,7 @@ export async function StudentsView({ program }: { program: string }) {
 // ---- Compare ----
 export async function CompareView({ a, b, program }: { a?: string; b?: string; program: string }) {
   const students = await prisma.student.findMany({ where: { program }, orderBy: { studentId: "asc" }, select: { id: true, name: true, studentId: true } });
-  const cmp = a && b && a !== b ? await compareStudents(a, b) : null;
+  const cmp = a && b && a !== b && students.some((s) => s.id === a) && students.some((s) => s.id === b) ? await compareStudents(a, b) : null;
   return (
     <div className="space-y-4">
       <form className="card" method="GET" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: ".8rem" }}>
@@ -138,8 +139,8 @@ export async function CompareView({ a, b, program }: { a?: string; b?: string; p
 }
 
 // ---- Analytics (admin) ----
-export async function AnalyticsView({ program }: { program: string }) {
-  const [summary, corr, drivers, trend] = await Promise.all([attendanceSummary(program), courseCorrelations(program), attendanceDrivers(program), weeklyTrend(undefined, program)]);
+export async function AnalyticsView({ program, term = CURRENT_TERM }: { program: string; term?: number }) {
+  const [summary, corr, drivers, trend] = await Promise.all([attendanceSummary(program, term), courseCorrelations(program, term), attendanceDrivers(program, term), weeklyTrend(undefined, program, term)]);
   if (summary.courses.length === 0) return <div className="card" style={{ color: "var(--faint)" }}>No attendance recorded yet — analytics appear once marking begins.</div>;
   const rColor = (r: number | null) => (r == null ? "var(--faint)" : r >= 0.5 ? "var(--good)" : r <= -0.5 ? "var(--bad)" : "var(--text)");
   const cname = new Map(summary.courses.map((c) => [c.code, c.name] as const));
@@ -178,7 +179,7 @@ export async function RosterView({ sessionId, program, base = "/admin/mark" }: {
   const listHref = `${base}?program=${program}`;
   const sessionHref = (id: string) => `${listHref}&session=${id}`;
   if (!sessionId) {
-    const sessions = await prisma.session.findMany({ where: { course: { program } }, include: { course: true, _count: { select: { attendance: true } } }, orderBy: [{ date: "asc" }, { slot: "asc" }] });
+    const sessions = await prisma.session.findMany({ where: { course: { program, term: CURRENT_TERM } }, include: { course: true, _count: { select: { attendance: true } } }, orderBy: [{ date: "asc" }, { slot: "asc" }] });
     return (
       <div className="card">
         <div className="eyebrow" style={{ marginBottom: ".6rem" }}>Pick a session · {sessions.length}</div>

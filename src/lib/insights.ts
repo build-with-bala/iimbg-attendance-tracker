@@ -1,3 +1,4 @@
+import { CURRENT_TERM } from "./terms";
 import { prisma } from "./prisma";
 import { isPresent, isOD } from "./status";
 import { todayKey, sessionKey } from "./dates";
@@ -45,9 +46,9 @@ async function studentSessionTotals(enrollments: { courseId: string; section: st
 }
 
 // ---- Section onboarding: this student's multi-section electives + choice state ----
-export async function sectionChoices(studentId: string) {
+export async function sectionChoices(studentId: string, term = CURRENT_TERM) {
   const enrollments = await prisma.enrollment.findMany({
-    where: { studentId },
+    where: { studentId, course: { term } },
     include: { course: true },
     orderBy: [{ course: { term: "desc" } }, { course: { code: "asc" } }],
   });
@@ -61,9 +62,9 @@ export async function sectionChoices(studentId: string) {
 }
 
 // ---- Course popularity: how many students opted each subject ----
-export async function coursePopularity(program: string) {
+export async function coursePopularity(program: string, term = CURRENT_TERM) {
   const courses = await prisma.course.findMany({
-    where: { program },
+    where: { program, term },
     include: { _count: { select: { enrollments: true } } },
     orderBy: [{ term: "asc" }, { code: "asc" }],
   });
@@ -86,18 +87,18 @@ export async function courseRoster(courseId: string) {
 }
 
 // ---- Student directory ----
-export async function studentDirectory(program: string) {
+export async function studentDirectory(program: string, term = CURRENT_TERM) {
   return prisma.student.findMany({
     where: { program },
     orderBy: { studentId: "asc" },
-    include: { _count: { select: { enrollments: true } } },
+    include: { _count: { select: { enrollments: { where: { course: { term } } } } } },
   });
 }
 
 // ---- My subjects: for one student, each chosen subject + how many peers opted + peers list ----
-export async function mySubjects(studentId: string) {
+export async function mySubjects(studentId: string, term = CURRENT_TERM) {
   const enr = await prisma.enrollment.findMany({
-    where: { studentId },
+    where: { studentId, course: { term } },
     include: { course: { include: { _count: { select: { enrollments: true } } } } },
     orderBy: { course: { term: "asc" } },
   });
@@ -113,10 +114,10 @@ export async function mySubjects(studentId: string) {
 }
 
 // ---- Compare two students: subject similarity + differences + attendance diff ----
-export async function compareStudents(aId: string, bId: string) {
+export async function compareStudents(aId: string, bId: string, term = CURRENT_TERM) {
   const [a, b] = await Promise.all([
-    prisma.student.findUnique({ where: { id: aId }, include: { enrollments: { include: { course: true } } } }),
-    prisma.student.findUnique({ where: { id: bId }, include: { enrollments: { include: { course: true } } } }),
+    prisma.student.findUnique({ where: { id: aId }, include: { enrollments: { where: { course: { term } }, include: { course: true } } } }),
+    prisma.student.findUnique({ where: { id: bId }, include: { enrollments: { where: { course: { term } }, include: { course: true } } } }),
   ]);
   if (!a || !b) return null;
 
@@ -130,7 +131,7 @@ export async function compareStudents(aId: string, bId: string) {
 
   // attendance per student per course (for shared courses)
   const att = await prisma.attendance.findMany({
-    where: { studentId: { in: [aId, bId] } },
+    where: { studentId: { in: [aId, bId] }, session: { course: { term } } },
     include: { session: { include: { course: true } } },
   });
   const acc = new Map<string, { p: number; t: number }>(); // key sid|code
@@ -163,14 +164,14 @@ export async function compareStudents(aId: string, bId: string) {
 
 // ---- Student skip-budget / grade safety (per course + overall) ----
 import { safety } from "./grades";
-export async function studentSafety(studentId: string) {
+export async function studentSafety(studentId: string, term = CURRENT_TERM) {
   const enrollments = await prisma.enrollment.findMany({
-    where: { studentId },
+    where: { studentId, course: { term } },
     include: { course: true },
   });
   const effTotals = await studentSessionTotals(enrollments);
   const att = await prisma.attendance.findMany({
-    where: { studentId },
+    where: { studentId, session: { course: { term } } },
     include: { session: { select: { courseId: true } } },
   });
   // per course tallies — OD is credited as present (see lib/status)
@@ -199,12 +200,12 @@ export async function studentSafety(studentId: string) {
 
 // ---- One student's day: today's classes, or the next day that has any ----
 // Sectioned courses only surface the student's own section once chosen.
-export async function studentDay(studentId: string) {
-  const enr = await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true, section: true } });
+export async function studentDay(studentId: string, term = CURRENT_TERM) {
+  const enr = await prisma.enrollment.findMany({ where: { studentId, course: { term } }, select: { courseId: true, section: true } });
   const secOf = new Map(enr.map((e) => [e.courseId, e.section]));
   const [allRaw, marks] = await Promise.all([
     prisma.session.findMany({ where: { courseId: { in: enr.map((e) => e.courseId) } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }),
-    prisma.attendance.findMany({ where: { studentId }, select: { sessionId: true, status: true } }),
+    prisma.attendance.findMany({ where: { studentId, session: { course: { term } } }, select: { sessionId: true, status: true } }),
   ]);
   const all = allRaw.filter((s) => s.section === "" || !secOf.get(s.courseId) || s.section === secOf.get(s.courseId));
   const today = todayKey();
@@ -225,8 +226,8 @@ export async function studentDay(studentId: string) {
 
 // ---- Cohort label: the shown programme + its loaded term(s) ----
 export const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
-export async function cohortLabel(program: string) {
-  const groups = await prisma.course.findMany({ where: { program }, select: { term: true }, distinct: ["term"] });
+export async function cohortLabel(program: string, term = CURRENT_TERM) {
+  const groups = await prisma.course.findMany({ where: { program, term }, select: { term: true }, distinct: ["term"] });
   if (groups.length === 0) return programName(program) || "Cohort";
   const terms = [...new Set(groups.map((g) => g.term))].sort((a, b) => a - b);
   const termLabel = terms.map((t) => ROMAN[t] ?? t).join(" / ");
@@ -240,9 +241,9 @@ export async function loadedPrograms() {
 }
 
 // ---- All classes (sessions) for the browser ----
-export async function allClasses(program: string) {
+export async function allClasses(program: string, term = CURRENT_TERM) {
   const sessions = await prisma.session.findMany({
-    where: { course: { program } },
+    where: { course: { program, term } },
     include: { course: true, _count: { select: { attendance: true } } },
     orderBy: [{ date: "asc" }, { slot: "asc" }],
   });

@@ -1,3 +1,4 @@
+import { CURRENT_TERM } from "@/lib/terms";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { weeklyTrend } from "@/lib/analytics";
@@ -196,8 +197,8 @@ export async function MySubjectsView({ studentId }: { studentId: string }) {
   );
 }
 
-export async function MarkMeView({ studentId }: { studentId: string }) {
-  const enr = await prisma.enrollment.findMany({ where: { studentId }, select: { courseId: true, section: true } });
+export async function MarkMeView({ studentId, term = CURRENT_TERM }: { studentId: string; term?: number }) {
+  const enr = await prisma.enrollment.findMany({ where: { studentId, course: { term } }, select: { courseId: true, section: true } });
   const secOf = new Map(enr.map((e) => [e.courseId, e.section]));
   const sessions = (await prisma.session.findMany({ where: { courseId: { in: enr.map((e) => e.courseId) } }, include: { course: true }, orderBy: [{ date: "asc" }, { slot: "asc" }] }))
     .filter((s) => s.section === "" || !secOf.get(s.courseId) || s.section === secOf.get(s.courseId));

@@ -37,6 +37,7 @@ export function sectionsFor(v: Viewer) {
   return [
     ...(v.student ? [{ href: "/student", label: "Student", ico: "◎" }] : []),
     { href: "/cohort", label: "Cohort", ico: "▦" },
+    { href: "/audit", label: "Previous Term Audit", ico: "◷" },
     { href: "/queries", label: "Queries", ico: "✎" },
   ];
 }

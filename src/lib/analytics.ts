@@ -1,3 +1,4 @@
+import { CURRENT_TERM } from "./terms";
 import { prisma } from "./prisma";
 import { isPresent } from "./status";
 
@@ -5,15 +6,15 @@ export type Row = { sessionId: string; studentId: string; status: string };
 
 // Pull all attendance joined with session/course context once, reuse for all stats.
 // `program` scopes everything to one cohort (omit only for per-student queries).
-export async function loadFacts(program?: string) {
-  const courseFilter = program ? { course: { program } } : {};
+export async function loadFacts(program?: string, term = CURRENT_TERM) {
+  const courseFilter = { course: { ...(program ? { program } : {}), term } };
   const attendance = await prisma.attendance.findMany({
-    where: program ? { session: courseFilter } : undefined,
+    where: { session: courseFilter },
     include: { session: { include: { course: true } }, student: true },
   });
-  const sessions = await prisma.session.findMany({ where: program ? courseFilter : undefined, include: { course: true } });
+  const sessions = await prisma.session.findMany({ where: courseFilter, include: { course: true } });
   const enrollments = await prisma.enrollment.findMany({
-    where: program ? courseFilter : undefined,
+    where: courseFilter,
     include: { student: true, course: true },
   });
   return { attendance, sessions, enrollments };
@@ -24,8 +25,8 @@ function pct(present: number, total: number) {
 }
 
 // ---- Attendance % : per student, per course, per term ----
-export async function attendanceSummary(program?: string) {
-  const { attendance } = await loadFacts(program);
+export async function attendanceSummary(program?: string, term = CURRENT_TERM) {
+  const { attendance } = await loadFacts(program, term);
   const byStudent = new Map<string, { name: string; sid: string; p: number; t: number }>();
   const byCourse = new Map<string, { code: string; name: string; term: number; p: number; t: number }>();
   const byStudentCourse = new Map<string, { p: number; t: number }>();
@@ -63,8 +64,8 @@ function pearson(xs: number[], ys: number[]) {
 }
 
 // ---- Correlation: course x course (per-student attendance %) ----
-export async function courseCorrelations(program?: string) {
-  const { attendance } = await loadFacts(program);
+export async function courseCorrelations(program?: string, term = CURRENT_TERM) {
+  const { attendance } = await loadFacts(program, term);
   // student -> course -> {p,t}
   const map = new Map<string, Map<string, { p: number; t: number }>>();
   const courses = new Map<string, string>();
@@ -91,8 +92,8 @@ export async function courseCorrelations(program?: string) {
 }
 
 // ---- Correlation drivers: time-slot & professor effect on attendance ----
-export async function attendanceDrivers(program?: string) {
-  const { attendance } = await loadFacts(program);
+export async function attendanceDrivers(program?: string, term = CURRENT_TERM) {
+  const { attendance } = await loadFacts(program, term);
   const slotBucket = (slot: string) => (parseInt(slot.slice(0, 2)) < 13 ? "Morning" : "Afternoon/Evening");
   const bySlot = new Map<string, { p: number; t: number }>();
   const byProf = new Map<string, { p: number; t: number }>();
@@ -110,8 +111,8 @@ export async function attendanceDrivers(program?: string) {
 }
 
 // ---- Trend: weekly attendance % (whole class or one student) ----
-export async function weeklyTrend(studentId?: string, program?: string) {
-  const { attendance } = await loadFacts(program);
+export async function weeklyTrend(studentId?: string, program?: string, term = CURRENT_TERM) {
+  const { attendance } = await loadFacts(program, term);
   const weeks = new Map<string, { p: number; t: number }>();
   for (const a of attendance) {
     if (studentId && a.studentId !== studentId) continue;
