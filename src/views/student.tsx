@@ -153,7 +153,7 @@ export async function StandingView({ studentId }: { studentId: string }) {
       </div>
 
       <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.3rem" }}>
-        <div className="card" style={{ minWidth: 0 }}><div className="eyebrow" style={{ marginBottom: ".9rem" }}>Weekly trend</div>{trend.length ? <TrendLine data={trend} /> : <Empty>Mark a class to start your trend.</Empty>}</div>
+        <div className="card" style={{ minWidth: 0, overflow: "hidden" }}><div className="eyebrow" style={{ marginBottom: ".9rem" }}>Weekly trend</div>{trend.length ? <TrendLine data={trend} /> : <Empty>Mark a class to start your trend.</Empty>}</div>
         <div className="card" style={{ minWidth: 0 }}>
           <div className="eyebrow" style={{ marginBottom: ".9rem" }}>Recording status</div>
           <p className="num">{tillDate.overall.marked} of {tillDate.overall.total} completed classes recorded</p>
