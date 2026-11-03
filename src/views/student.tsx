@@ -153,8 +153,8 @@ export async function StandingView({ studentId }: { studentId: string }) {
       </div>
 
       <div className="two-col" style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "1.3rem" }}>
-        <div className="card"><div className="eyebrow" style={{ marginBottom: ".9rem" }}>Weekly trend</div>{trend.length ? <TrendLine data={trend} /> : <Empty>Mark a class to start your trend.</Empty>}</div>
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}><div className="eyebrow" style={{ marginBottom: ".9rem" }}>Weekly trend</div>{trend.length ? <TrendLine data={trend} /> : <Empty>Mark a class to start your trend.</Empty>}</div>
+        <div className="card" style={{ minWidth: 0 }}>
           <div className="eyebrow" style={{ marginBottom: ".9rem" }}>Recording status</div>
           <p className="num">{tillDate.overall.marked} of {tillDate.overall.total} completed classes recorded</p>
           <p className="code" style={{ marginTop: ".7rem", lineHeight: 1.7 }}>{tillDate.overall.unmarked > 0 ? `${tillDate.overall.unmarked} classes still need marking. Unmarked does not mean absent.` : "All completed classes have been recorded."} Classes later today and in the future are excluded from the attendance count.</p>
